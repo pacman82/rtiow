@@ -1,15 +1,17 @@
 // https://raytracing.github.io/books/RayTracingInOneWeekend.html
 // http://cs.rhodes.edu/welshc/COMP141_F16/ppmReader.html
+mod camera;
 mod hittable;
 mod ray;
 mod sphere;
 mod vec3;
 
+use camera::Camera;
 use hittable::Hittable;
 use ray::Ray;
 use sphere::Sphere;
 use std::io;
-use vec3::{Color, Point, Vec3};
+use vec3::{Color, Point};
 
 fn main() -> io::Result<()> {
     let aspect_ratio = 16. / 9.;
@@ -19,15 +21,7 @@ fn main() -> io::Result<()> {
     // P3 means colors are in ASCII. Then width, then height. 255 is the max color.
     print!("P3\n{} {}\n255\n", image_width, image_height);
 
-    let viewport_height = 2.;
-    let viewport_width = aspect_ratio * viewport_height;
-    let focal_length = 1.;
-
-    let origin = Point::new(0., 0., 0.);
-    let horizontal = Vec3::new(viewport_width, 0., 0.);
-    let vertical = Vec3::new(0., viewport_height, 0.);
-    let lower_left_corner =
-        origin - horizontal / 2. - vertical / 2. - Vec3::new(0., 0., focal_length);
+    let camera = Camera::new(aspect_ratio);
 
     let world = vec![
         Sphere::new(Point::new(0., 0., -1.), 0.5),
@@ -39,7 +33,7 @@ fn main() -> io::Result<()> {
         for i in 0..image_width {
             let u = i as f64 / (image_width - 1) as f64;
             let v = j as f64 / (image_height - 1) as f64;
-            let ray = Ray::from_to(origin, lower_left_corner + horizontal * u + vertical * v);
+            let ray = camera.get_ray(u, v);
             let pixel_color = ray_color(&ray, &world);
             write_color(&pixel_color, io::stdout().lock())?;
         }

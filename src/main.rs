@@ -11,10 +11,10 @@ use crate::{
     hittable::Hittable,
     ray::Ray,
     sphere::Sphere,
-    vec3::{Color, Point},
+    vec3::{Color, Point, Vec3},
 };
 use rand::{thread_rng, Rng};
-use std::io;
+use std::{f64::consts::PI, io};
 
 fn main() -> io::Result<()> {
     let aspect_ratio = 16. / 9.;
@@ -69,7 +69,7 @@ fn ray_color(ray: &Ray, world: &impl Hittable, rng: &mut impl Rng, depth: u32) -
         return Color::new(0., 0., 0.);
     }
     if let Some(rec) = world.hit(ray, 0.001, f64::INFINITY) {
-        let target = rec.point + rec.normal + random_in_unit_sphere(rng);
+        let target = rec.point + rec.normal + random_unit_vector(rng);
         let ray = Ray::from_to(rec.point, target);
         ray_color(&ray, world, rng, depth - 1) * 0.5
     } else {
@@ -93,11 +93,18 @@ fn clamp(f: f64, low: f64, high: f64) -> f64 {
     }
 }
 
-fn random_in_unit_sphere(rng: &mut impl Rng) -> Point {
-    loop {
-        let candidate = Point::random(rng, -1., 1.);
-        if candidate.length_squared() < 1. {
-            break candidate;
-        }
-    }
+// fn random_in_unit_sphere(rng: &mut impl Rng) -> Vec3 {
+//     loop {
+//         let candidate = Vec3::random(rng, -1., 1.);
+//         if candidate.length_squared() < 1. {
+//             break candidate;
+//         }
+//     }
+// }
+
+fn random_unit_vector(rng: &mut impl Rng) -> Vec3 {
+    let a = rng.gen_range(0., 2. * PI);
+    let z: f64 = rng.gen_range(-1., 1.);
+    let r = (1. - z * z).sqrt();
+    Vec3::new(r * a.cos(), r * a.sin(), z)
 }

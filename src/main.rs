@@ -21,6 +21,7 @@ fn main() -> io::Result<()> {
     let image_width = 384;
     let image_height = (image_width as f64 / aspect_ratio) as i32;
     let samples_per_pixel = 100;
+    let max_depth = 50;
 
     // P3 means colors are in ASCII. Then width, then height. 255 is the max color.
     print!("P3\n{} {}\n255\n", image_width, image_height);
@@ -43,7 +44,7 @@ fn main() -> io::Result<()> {
                     let u = (i as f64 + rng.gen_range(0., 1.)) / (image_width - 1) as f64;
                     let v = (j as f64 + rng.gen_range(0., 1.)) / (image_height - 1) as f64;
                     let ray = camera.get_ray(u, v);
-                    ray_color(&ray, &world)
+                    ray_color(&ray, &world, &mut rng, max_depth)
                 })
                 .fold(Color::new(0., 0., 0.), |a, b| a + b);
             let pixel_color = acc_color / samples_per_pixel as f64;
@@ -63,9 +64,14 @@ pub fn write_color(color: &Color, mut out: impl io::Write) -> io::Result<()> {
     writeln!(out, "{} {} {}", red, green, blue)
 }
 
-fn ray_color(ray: &Ray, world: &impl Hittable) -> Color {
-    if let Some(rec) = world.hit(ray, 0., 1.) {
-        (rec.normal + Color::new(1., 1., 1.)) / 2.
+fn ray_color(ray: &Ray, world: &impl Hittable, rng: &mut impl Rng, depth: u32) -> Color {
+    if depth == 0 {
+        return Color::new(0., 0., 0.);
+    }
+    if let Some(rec) = world.hit(ray, 0., f64::INFINITY) {
+        let target = rec.point + rec.normal + random_in_unit_sphere(rng);
+        let ray = Ray::from_to(rec.point, target);
+        ray_color(&ray, world, rng, depth - 1) * 0.5
     } else {
         // y is between -1 and 1
         let y = ray.direction.unit().y();
@@ -84,5 +90,14 @@ fn clamp(f: f64, low: f64, high: f64) -> f64 {
         high
     } else {
         f
+    }
+}
+
+fn random_in_unit_sphere(rng: &mut impl Rng) -> Point {
+    loop {
+        let candidate = Point::random(rng, -1., 1.);
+        if candidate.length_squared() < 1. {
+            break candidate;
+        }
     }
 }

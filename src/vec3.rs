@@ -1,4 +1,5 @@
-use std::ops::{Add, Deref, DerefMut, Div, Mul, Sub, SubAssign, Neg};
+use rand::Rng;
+use std::ops::{Add, Deref, DerefMut, Div, Mul, Neg, Sub, SubAssign};
 
 pub type Color = Vec3;
 pub type Point = Vec3;
@@ -9,6 +10,14 @@ pub struct Vec3([f64; 3]);
 impl Vec3 {
     pub fn new(x: f64, y: f64, z: f64) -> Self {
         Self([x, y, z])
+    }
+
+    pub fn random(rng: &mut impl Rng, min: f64, max: f64) -> Self {
+        Self([
+            rng.gen_range(min, max),
+            rng.gen_range(min, max),
+            rng.gen_range(min, max),
+        ])
     }
 
     pub fn length_squared(&self) -> f64 {

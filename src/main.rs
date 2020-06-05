@@ -56,9 +56,9 @@ fn main() -> io::Result<()> {
 }
 
 pub fn write_color(color: &Color, mut out: impl io::Write) -> io::Result<()> {
-    let red = (256. * clamp(color[0], 0., 0.999)) as i32;
-    let green = (256. * clamp(color[1], 0., 0.999)) as i32;
-    let blue = (256. * clamp(color[2], 0., 0.999)) as i32;
+    let red = (256. * clamp(color[0].sqrt(), 0., 0.999)) as i32;
+    let green = (256. * clamp(color[1].sqrt(), 0., 0.999)) as i32;
+    let blue = (256. * clamp(color[2].sqrt(), 0., 0.999)) as i32;
 
     // Now print RGB tripplets
     writeln!(out, "{} {} {}", red, green, blue)

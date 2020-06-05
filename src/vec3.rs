@@ -1,7 +1,4 @@
-use std::{
-    io,
-    ops::{Add, Deref, DerefMut, Div, Mul, Sub, SubAssign},
-};
+use std::ops::{Add, Deref, DerefMut, Div, Mul, Sub, SubAssign, Neg};
 
 pub type Color = Vec3;
 pub type Point = Vec3;
@@ -12,15 +9,6 @@ pub struct Vec3([f64; 3]);
 impl Vec3 {
     pub fn new(x: f64, y: f64, z: f64) -> Self {
         Self([x, y, z])
-    }
-
-    pub fn write_color(&self, mut out: impl io::Write) -> io::Result<()> {
-        let red = (255.999 * self[0]) as i32;
-        let green = (255.999 * self[1]) as i32;
-        let blue = (255.999 * self[2]) as i32;
-
-        // Now print RGB tripplets
-        writeln!(out, "{} {} {}", red, green, blue)
     }
 
     pub fn length_squared(&self) -> f64 {
@@ -104,5 +92,13 @@ impl SubAssign for Vec3 {
         for i in 0..3 {
             self[i] -= rhs[i]
         }
+    }
+}
+
+impl Neg for Vec3 {
+    type Output = Vec3;
+
+    fn neg(self) -> Self::Output {
+        self * (-1.)
     }
 }

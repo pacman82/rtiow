@@ -2,10 +2,14 @@
 // http://cs.rhodes.edu/welshc/COMP141_F16/ppmReader.html
 mod ray;
 mod vec3;
+mod hittable;
+mod sphere;
 
 use ray::Ray;
 use std::io;
-use vec3::{Color, Point, Vec3, dot};
+use vec3::{Color, Point, Vec3};
+use hittable::Hittable;
+use sphere::Sphere;
 
 fn main() -> io::Result<()> {
     let aspect_ratio = 16. / 9.;
@@ -32,16 +36,26 @@ fn main() -> io::Result<()> {
             let v = j as f64 / (image_height - 1) as f64;
             let ray = Ray::from_to(origin, lower_left_corner + horizontal * u + vertical * v);
             let pixel_color = ray_color(&ray);
-            pixel_color.write_color(io::stdout().lock())?;
+            write_color(&pixel_color, io::stdout().lock())?;
         }
     }
     eprintln!("Done!");
     Ok(())
 }
 
+pub fn write_color(color: &Color, mut out: impl io::Write) -> io::Result<()> {
+    let red = (255.999 * color[0]) as i32;
+    let green = (255.999 * color[1]) as i32;
+    let blue = (255.999 * color[2]) as i32;
+
+    // Now print RGB tripplets
+    writeln!(out, "{} {} {}", red, green, blue)
+}
+
 fn ray_color(ray: &Ray) -> Color {
-    if hit_sphere(&Point::new(0., 0., -1.), 0.5, &ray) {
-        Color::new(1., 0., 0.)
+    let sphere = Sphere::new(Point::new(0., 0., -1.), 0.5);
+    if let Some(rec) = sphere.hit(ray, 0., 1.) {
+        (rec.normal + Vec3::new(1., 1., 1.)) / 2.
     } else {
         // y is between -1 and 1
         let y = ray.direction.unit().y();
@@ -51,18 +65,4 @@ fn ray_color(ray: &Ray) -> Color {
         let blend_end = Color::new(0.5, 0.7, 1.0);
         blend_start * (1. - t) + blend_end * t
     }
-}
-
-fn hit_sphere(center: &Point, radius: f64, ray: &Ray) -> bool {
-    let mut ray = *ray;
-    // Transform coordinats so sphere is in the center.
-    ray.origin -= *center;
-    // r^2 == (t * D + O) * (t * D + O)
-    // r^2 == t^2 D*D + 2t*D*O + O*O
-    // 0 == t^2 D*D + 2t*D*O + O*O - r^2
-    let a = ray.direction.length_squared();
-    let b = 2. * dot(ray.direction, ray.origin);
-    let c = ray.origin.length_squared() - radius * radius;
-    let discriminant = b * b - 4. * a * c;
-    discriminant >= 0.
 }

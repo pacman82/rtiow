@@ -14,4 +14,8 @@ impl Ray {
     pub fn from_to(origin: Point, destination: Point) -> Self {
         Self::new(origin, destination - origin)
     }
+
+    pub fn at(&self, t: f64) -> Point {
+        self.origin + self.direction * t
+    }
 }

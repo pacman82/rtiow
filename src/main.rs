@@ -1,15 +1,15 @@
 // https://raytracing.github.io/books/RayTracingInOneWeekend.html
 // http://cs.rhodes.edu/welshc/COMP141_F16/ppmReader.html
-mod ray;
-mod vec3;
 mod hittable;
+mod ray;
 mod sphere;
+mod vec3;
 
+use hittable::Hittable;
 use ray::Ray;
+use sphere::Sphere;
 use std::io;
 use vec3::{Color, Point, Vec3};
-use hittable::Hittable;
-use sphere::Sphere;
 
 fn main() -> io::Result<()> {
     let aspect_ratio = 16. / 9.;
@@ -29,13 +29,18 @@ fn main() -> io::Result<()> {
     let lower_left_corner =
         origin - horizontal / 2. - vertical / 2. - Vec3::new(0., 0., focal_length);
 
+    let world = vec![
+        Sphere::new(Point::new(0., 0., -1.), 0.5),
+        Sphere::new(Point::new(0., -100.5, -1.), 100.),
+    ];
+
     for j in (0..image_height).into_iter().rev() {
         eprintln!("Scanlines remaining: {}", j);
         for i in 0..image_width {
             let u = i as f64 / (image_width - 1) as f64;
             let v = j as f64 / (image_height - 1) as f64;
             let ray = Ray::from_to(origin, lower_left_corner + horizontal * u + vertical * v);
-            let pixel_color = ray_color(&ray);
+            let pixel_color = ray_color(&ray, &world);
             write_color(&pixel_color, io::stdout().lock())?;
         }
     }
@@ -52,10 +57,9 @@ pub fn write_color(color: &Color, mut out: impl io::Write) -> io::Result<()> {
     writeln!(out, "{} {} {}", red, green, blue)
 }
 
-fn ray_color(ray: &Ray) -> Color {
-    let sphere = Sphere::new(Point::new(0., 0., -1.), 0.5);
-    if let Some(rec) = sphere.hit(ray, 0., 1.) {
-        (rec.normal + Vec3::new(1., 1., 1.)) / 2.
+fn ray_color(ray: &Ray, world: &impl Hittable) -> Color {
+    if let Some(rec) = world.hit(ray, 0., 1.) {
+        (rec.normal + Color::new(1., 1., 1.)) / 2.
     } else {
         // y is between -1 and 1
         let y = ray.direction.unit().y();

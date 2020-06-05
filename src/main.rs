@@ -68,7 +68,7 @@ fn ray_color(ray: &Ray, world: &impl Hittable, rng: &mut impl Rng, depth: u32) -
     if depth == 0 {
         return Color::new(0., 0., 0.);
     }
-    if let Some(rec) = world.hit(ray, 0., f64::INFINITY) {
+    if let Some(rec) = world.hit(ray, 0.001, f64::INFINITY) {
         let target = rec.point + rec.normal + random_in_unit_sphere(rng);
         let ray = Ray::from_to(rec.point, target);
         ray_color(&ray, world, rng, depth - 1) * 0.5

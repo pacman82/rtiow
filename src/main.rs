@@ -1,6 +1,7 @@
 // https://raytracing.github.io/books/RayTracingInOneWeekend.html
 // http://cs.rhodes.edu/welshc/COMP141_F16/ppmReader.html
 mod camera;
+mod diffusion;
 mod hittable;
 mod ray;
 mod sphere;
@@ -8,15 +9,47 @@ mod vec3;
 
 use crate::{
     camera::Camera,
+    diffusion::{Diffusion, Hemisphere, Lambertian, Simple},
     hittable::Hittable,
     ray::Ray,
     sphere::Sphere,
-    vec3::{Color, Point, Vec3},
+    vec3::{Color, Point},
 };
 use rand::{thread_rng, Rng};
-use std::{f64::consts::PI, io};
+use std::io;
+use structopt::{clap::arg_enum, StructOpt};
+
+arg_enum! {
+    enum OptDiffusion {
+        Simple,
+        Lambertian,
+        Hemisphere,
+    }
+}
+
+#[derive(StructOpt)]
+struct Cli {
+    /// Lightning method used to diffuse the light once it hits an object.
+    #[structopt(
+        long="diffusion",
+        short="d",
+        possible_values=&OptDiffusion::variants(),
+        default_value="Lambertian"
+    )]
+    diffusion: OptDiffusion,
+}
 
 fn main() -> io::Result<()> {
+    let opt = Cli::from_args();
+
+    let diffusion: Box<dyn Diffusion<_>> = match opt.diffusion {
+        OptDiffusion::Simple => Box::new(Simple),
+        OptDiffusion::Lambertian => Box::new(Lambertian),
+        OptDiffusion::Hemisphere => Box::new(Hemisphere),
+    };
+
+    // let diffusion = Lambertian;
+
     let aspect_ratio = 16. / 9.;
     let image_width = 384;
     let image_height = (image_width as f64 / aspect_ratio) as i32;
@@ -44,7 +77,7 @@ fn main() -> io::Result<()> {
                     let u = (i as f64 + rng.gen_range(0., 1.)) / (image_width - 1) as f64;
                     let v = (j as f64 + rng.gen_range(0., 1.)) / (image_height - 1) as f64;
                     let ray = camera.get_ray(u, v);
-                    ray_color(&ray, &world, &mut rng, max_depth)
+                    ray_color(&ray, &world, &mut rng, max_depth, &*diffusion)
                 })
                 .fold(Color::new(0., 0., 0.), |a, b| a + b);
             let pixel_color = acc_color / samples_per_pixel as f64;
@@ -64,14 +97,20 @@ pub fn write_color(color: &Color, mut out: impl io::Write) -> io::Result<()> {
     writeln!(out, "{} {} {}", red, green, blue)
 }
 
-fn ray_color(ray: &Ray, world: &impl Hittable, rng: &mut impl Rng, depth: u32) -> Color {
+fn ray_color<R: Rng>(
+    ray: &Ray,
+    world: &impl Hittable,
+    rng: &mut R,
+    depth: u32,
+    diffusion: &dyn Diffusion<R>,
+) -> Color {
     if depth == 0 {
         return Color::new(0., 0., 0.);
     }
     if let Some(rec) = world.hit(ray, 0.001, f64::INFINITY) {
-        let target = rec.point + rec.normal + random_unit_vector(rng);
+        let target = rec.point + diffusion.diffuse(rng, &rec.normal);
         let ray = Ray::from_to(rec.point, target);
-        ray_color(&ray, world, rng, depth - 1) * 0.5
+        ray_color(&ray, world, rng, depth - 1, diffusion) * 0.5
     } else {
         // y is between -1 and 1
         let y = ray.direction.unit().y();
@@ -91,20 +130,4 @@ fn clamp(f: f64, low: f64, high: f64) -> f64 {
     } else {
         f
     }
-}
-
-// fn random_in_unit_sphere(rng: &mut impl Rng) -> Vec3 {
-//     loop {
-//         let candidate = Vec3::random(rng, -1., 1.);
-//         if candidate.length_squared() < 1. {
-//             break candidate;
-//         }
-//     }
-// }
-
-fn random_unit_vector(rng: &mut impl Rng) -> Vec3 {
-    let a = rng.gen_range(0., 2. * PI);
-    let z: f64 = rng.gen_range(-1., 1.);
-    let r = (1. - z * z).sqrt();
-    Vec3::new(r * a.cos(), r * a.sin(), z)
 }

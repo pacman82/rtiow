@@ -29,7 +29,7 @@ arg_enum! {
 
 #[derive(StructOpt)]
 struct Cli {
-    /// Lightning method used to diffuse the light once it hits an object.
+    /// Diffuse lightning method
     #[structopt(
         long="diffusion",
         short="d",
@@ -68,11 +68,10 @@ fn main() -> io::Result<()> {
 
     let mut rng = thread_rng();
 
-    for j in (0..image_height).into_iter().rev() {
+    for j in (0..image_height).rev() {
         eprintln!("Scanlines remaining: {}", j);
         for i in 0..image_width {
             let acc_color = (0..samples_per_pixel)
-                .into_iter()
                 .map(|_| {
                     let u = (i as f64 + rng.gen_range(0., 1.)) / (image_width - 1) as f64;
                     let v = (j as f64 + rng.gen_range(0., 1.)) / (image_height - 1) as f64;

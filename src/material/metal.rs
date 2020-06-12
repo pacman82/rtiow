@@ -1,5 +1,5 @@
-use super::{reflect, Material, ScatterResult, random_in_unit_sphere};
-use crate::vec3::{Color, Vec3, dot};
+use super::{random_in_unit_sphere, reflect, Material, ScatterResult};
+use crate::vec3::{dot, Color, Vec3};
 use rand::rngs::ThreadRng;
 
 pub struct Metal {
@@ -20,6 +20,7 @@ impl Material for Metal {
         rng: &mut ThreadRng,
         incoming: &Vec3,
         normal: &Vec3,
+        _front_face: bool,
     ) -> Option<ScatterResult> {
         let reflected = reflect(incoming, normal);
         if dot(reflected, *normal) > 0. {

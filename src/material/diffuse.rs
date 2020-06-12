@@ -18,6 +18,7 @@ impl Material for Lambertian {
         rng: &mut ThreadRng,
         _incoming: &Vec3,
         normal: &Vec3,
+        _front_face: bool,
     ) -> Option<ScatterResult> {
         Some(ScatterResult {
             attenuation: self.albedo,
@@ -36,6 +37,7 @@ impl Material for Simple {
         rng: &mut ThreadRng,
         _incoming: &Vec3,
         normal: &Vec3,
+        _front_face: bool,
     ) -> Option<ScatterResult> {
         Some(ScatterResult {
             attenuation: self.albedo,
@@ -57,6 +59,7 @@ impl Material for Hemisphere {
         rng: &mut ThreadRng,
         _incoming: &Vec3,
         normal: &Vec3,
+        _front_face: bool,
     ) -> Option<ScatterResult> {
         let in_unit_sphere = random_in_unit_sphere(rng);
         let direction = if dot(in_unit_sphere, *normal) > 0.0 {

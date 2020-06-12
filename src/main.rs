@@ -42,7 +42,7 @@ fn main() -> io::Result<()> {
 
     let world = create_world();
 
-    let camera = Camera::new(aspect_ratio);
+    let camera = Camera::new(90., aspect_ratio);
 
     let mut rng = thread_rng();
 

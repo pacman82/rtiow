@@ -52,3 +52,10 @@ fn refract(unit_incoming: &Vec3, normal: &Vec3, etai_over_etat: f64) -> Vec3 {
     let r_out_perpendiclar = -*normal * (1. - r_out_parallel.length_squared()).sqrt();
     r_out_parallel + r_out_perpendiclar
 }
+
+/// Approximate probability to reflect.
+fn schlick(cosine: f64, refracture_index: f64) -> f64{
+    let r0 = (1. - refracture_index) / (1. + refracture_index);
+    let r0 = r0 * r0;
+    r0 + (1. - r0) * (1. - cosine).powi(5)
+}

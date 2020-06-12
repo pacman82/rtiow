@@ -1,21 +1,30 @@
 use crate::{
     hittable::{HitRecord, Hittable},
+    material::Material,
     ray::Ray,
     vec3::{dot, Point},
 };
 
-pub struct Sphere {
+pub struct Sphere<M> {
     center: Point,
     radius: f64,
+    material: M,
 }
 
-impl Sphere {
-    pub fn new(center: Point, radius: f64) -> Self {
-        Sphere { center, radius }
+impl<M> Sphere<M> {
+    pub fn new(center: Point, radius: f64, material: M) -> Self {
+        Sphere {
+            center,
+            radius,
+            material,
+        }
     }
 }
 
-impl Hittable for Sphere {
+impl<M> Hittable for Sphere<M>
+where
+    M: Material,
+{
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         // Transform coordinats so sphere is in the center.
         let origin = ray.origin - self.center;
@@ -53,7 +62,7 @@ impl Hittable for Sphere {
             let point = ray.at(t);
             let outward_normal = (point - self.center) / self.radius;
 
-            HitRecord::from_outward_normal(t, ray, outward_normal)
+            HitRecord::from_outward_normal(t, ray, outward_normal, &self.material)
         })
     }
 }

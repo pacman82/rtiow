@@ -8,7 +8,7 @@ pub type Point = Vec3;
 pub struct Vec3([f64; 3]);
 
 impl Vec3 {
-    pub fn new(x: f64, y: f64, z: f64) -> Self {
+    pub const fn new(x: f64, y: f64, z: f64) -> Self {
         Self([x, y, z])
     }
 
@@ -109,5 +109,13 @@ impl Neg for Vec3 {
 
     fn neg(self) -> Self::Output {
         self * (-1.)
+    }
+}
+
+impl Mul<&Vec3> for &Vec3 {
+    type Output = Vec3;
+
+    fn mul(self, rhs: &Vec3) -> Vec3 {
+        Vec3::new(self[0] * rhs[0], self[1] * rhs[1], self[2] * rhs[1])
     }
 }

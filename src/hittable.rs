@@ -1,18 +1,26 @@
 use crate::{
+    material::Material,
     ray::Ray,
     vec3::{dot, Point, Vec3},
 };
+use std::ops::Deref;
 
-pub struct HitRecord {
+pub struct HitRecord<'m> {
     pub t: f64,
     pub point: Point,
     pub front_face: bool,
     /// Always pointing against the intersecting ray.
     pub normal: Vec3,
+    pub material: &'m dyn Material,
 }
 
-impl HitRecord {
-    pub fn from_outward_normal(t: f64, ray: &Ray, outward_normal: Vec3) -> Self {
+impl<'m> HitRecord<'m> {
+    pub fn from_outward_normal(
+        t: f64,
+        ray: &Ray,
+        outward_normal: Vec3,
+        material: &'m dyn Material,
+    ) -> Self {
         let point = ray.at(t);
         let front_face = dot(outward_normal, ray.direction) < 0.;
         Self {
@@ -24,6 +32,7 @@ impl HitRecord {
             } else {
                 -outward_normal
             },
+            material,
         }
     }
 }
@@ -45,5 +54,14 @@ where
                 rec
             }
         })
+    }
+}
+
+impl<T> Hittable for Box<T>
+where
+    T: Hittable + ?Sized,
+{
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+        self.deref().hit(ray, t_min, t_max)
     }
 }

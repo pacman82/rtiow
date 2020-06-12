@@ -15,17 +15,17 @@ pub fn create_world() -> Vec<Box<dyn Hittable>> {
         Box::new(Sphere::new(
             Point::new(0., -100.5, -1.),
             100.,
-            Lambertian::new(Color::new(0.8, 0.8, 0.0)),
+            Lambertian::new(Color::new(0.2, 0.8, 0.0)),
         )),
         Box::new(Sphere::new(
             Point::new(1., 0., -1.),
             0.5,
-            Metal::new(Color::new(0.8, 0.6, 0.2)),
+            Metal::new(Color::new(0.8, 0.6, 0.2), 0.3),
         )),
         Box::new(Sphere::new(
             Point::new(-1., 0., -1.),
             0.5,
-            Metal::new(Color::new(0.8, 0.8, 0.8)),
+            Metal::new(Color::new(0.8, 0.8, 0.8), 1.0),
         )),
     ]
 }

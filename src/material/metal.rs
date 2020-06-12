@@ -1,33 +1,35 @@
-use super::{reflect, Material, ScatterResult};
+use super::{reflect, Material, ScatterResult, random_in_unit_sphere};
 use crate::vec3::{Color, Vec3, dot};
 use rand::rngs::ThreadRng;
 
 pub struct Metal {
     albedo: Color,
+    // Should be a value from 0. to 1.
+    fuzz: f64,
 }
 
 impl Metal {
-    pub fn new(albedo: Color) -> Metal {
-        Metal { albedo }
+    pub fn new(albedo: Color, fuzz: f64) -> Metal {
+        Metal { albedo, fuzz }
     }
 }
 
 impl Material for Metal {
     fn scatter(
         &self,
-        _rng: &mut ThreadRng,
+        rng: &mut ThreadRng,
         incoming: &Vec3,
         normal: &Vec3,
     ) -> Option<ScatterResult> {
-        // Why do we need the unit vector? Or do we?
-        let scattered = reflect(&incoming.unit(), normal);
-        if dot(scattered, *normal) > 0. {
+        let reflected = reflect(incoming, normal);
+        if dot(reflected, *normal) > 0. {
             Some(ScatterResult {
                 attenuation: self.albedo,
-                direction: scattered,
+                direction: reflected.unit() + random_in_unit_sphere(rng) * self.fuzz,
             })
         } else {
-            // Does this actually happen?
+            // This should only happen for fuzz > 0. Big rays or grazing rays, may scatter below the
+            // surface.
             None
         }
     }

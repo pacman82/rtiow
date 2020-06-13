@@ -12,7 +12,7 @@ use crate::{
     camera::Camera,
     hittable::Hittable,
     ray::Ray,
-    vec3::{Color, Vec3},
+    vec3::{Color, Point, Vec3},
     world::create_world,
 };
 use rand::{rngs::ThreadRng, thread_rng, Rng};
@@ -40,11 +40,23 @@ fn main() -> io::Result<()> {
     // P3 means colors are in ASCII. Then width, then height. 255 is the max color.
     print!("P3\n{} {}\n255\n", image_width, image_height);
 
-    let world = create_world();
-
-    let camera = Camera::new(90., aspect_ratio);
-
     let mut rng = thread_rng();
+
+    let world = create_world(&mut rng);
+
+    let lookfrom = Point::new(13., 2., 3.);
+    let lookat = Point::new(0., 0., 0.);
+    let distance_to_focus = 10.;
+
+    let camera = Camera::new(
+        20.,
+        aspect_ratio,
+        lookfrom,
+        lookat,
+        Vec3::new(0., 1., 0.),
+        distance_to_focus,
+        0.1,
+    );
 
     for j in (0..image_height).rev() {
         eprintln!("Scanlines remaining: {}", j);
@@ -53,7 +65,7 @@ fn main() -> io::Result<()> {
                 .map(|_| {
                     let u = (i as f64 + rng.gen_range(0., 1.)) / (image_width - 1) as f64;
                     let v = (j as f64 + rng.gen_range(0., 1.)) / (image_height - 1) as f64;
-                    let ray = camera.get_ray(u, v);
+                    let ray = camera.get_ray(u, v, &mut rng);
                     ray_color(&ray, &world, &mut rng, max_depth)
                 })
                 .fold(Color::new(0., 0., 0.), |a, b| a + b);

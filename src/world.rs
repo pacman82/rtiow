@@ -17,7 +17,11 @@ pub fn create_world(rng: &mut impl Rng) -> Vec<Box<dyn Hittable>> {
     )));
     for a in (-11..11).map(|i| i as f64) {
         for b in (-11..11).map(|i| i as f64) {
-            let center = Point::new(a + 0.9 * rng.gen_range(0., 1.), 0.2, b + 0.9 * rng.gen_range(0., 1.));
+            let center = Point::new(
+                a + 0.9 * rng.gen_range(0., 1.),
+                0.2,
+                b + 0.9 * rng.gen_range(0., 1.),
+            );
             if (center - Point::new(4., 0.2, 0.)).length() > 0.9 {
                 if rng.gen_bool(0.8) {
                     let albedo = &Color::random(rng, 0., 1.) * &Color::random(rng, 0., 1.);
@@ -44,7 +48,11 @@ pub fn create_world(rng: &mut impl Rng) -> Vec<Box<dyn Hittable>> {
     )));
 
     let material2 = Lambertian::new(Color::new(0.4, 0.2, 0.1));
-    world.push(Box::new(Sphere::new(Point::new(-4., 1., 0.), 1.0, material2)));
+    world.push(Box::new(Sphere::new(
+        Point::new(-4., 1., 0.),
+        1.0,
+        material2,
+    )));
 
     let material3 = Metal::new(Color::new(0.7, 0.6, 0.5), 0.0);
     world.push(Box::new(Sphere::new(

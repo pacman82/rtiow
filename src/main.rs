@@ -1,5 +1,5 @@
 // https://raytracing.github.io/books/RayTracingInOneWeekend.html
-// http://cs.rhodes.edu/welshc/COMP141_F16/ppmReader.html
+// Online ppm viewer: http://cs.rhodes.edu/welshc/COMP141_F16/ppmReader.html
 mod camera;
 mod hittable;
 mod material;
@@ -15,8 +15,10 @@ use crate::{
     vec3::{Color, Point, Vec3},
     world::create_world,
 };
+use image::ImageBuffer;
+use indicatif::ProgressBar;
 use rand::{rngs::ThreadRng, thread_rng, Rng};
-use std::io;
+use std::{io, path::PathBuf};
 use structopt::StructOpt;
 
 #[derive(StructOpt)]
@@ -25,20 +27,22 @@ struct Cli {
     samples_per_pixel: u32,
     #[structopt(long, default_value = "50")]
     max_depth: u32,
+    #[structopt(long, default_value = "384")]
+    image_width: u32,
+    #[structopt(long, short = "o", default_value = "image.png")]
+    output: PathBuf,
 }
 
 fn main() -> io::Result<()> {
     let Cli {
         samples_per_pixel,
         max_depth,
+        image_width,
+        output,
     } = Cli::from_args();
 
     let aspect_ratio = 16. / 9.;
-    let image_width = 384;
-    let image_height = (image_width as f64 / aspect_ratio) as i32;
-
-    // P3 means colors are in ASCII. Then width, then height. 255 is the max color.
-    print!("P3\n{} {}\n255\n", image_width, image_height);
+    let image_height = (image_width as f64 / aspect_ratio) as u32;
 
     let mut rng = thread_rng();
 
@@ -58,32 +62,43 @@ fn main() -> io::Result<()> {
         0.1,
     );
 
-    for j in (0..image_height).rev() {
-        eprintln!("Scanlines remaining: {}", j);
-        for i in 0..image_width {
-            let acc_color = (0..samples_per_pixel)
-                .map(|_| {
-                    let u = (i as f64 + rng.gen_range(0., 1.)) / (image_width - 1) as f64;
-                    let v = (j as f64 + rng.gen_range(0., 1.)) / (image_height - 1) as f64;
-                    let ray = camera.get_ray(u, v, &mut rng);
-                    ray_color(&ray, &world, &mut rng, max_depth)
-                })
-                .fold(Color::new(0., 0., 0.), |a, b| a + b);
-            let pixel_color = acc_color / samples_per_pixel as f64;
-            write_color(&pixel_color, io::stdout().lock())?;
-        }
+    let mut image_buffer = ImageBuffer::new(image_width, image_height);
+
+    let pixels = image_buffer.enumerate_pixels_mut();
+    let progress_bar = ProgressBar::new(pixels.len() as u64);
+
+    for (i, j, pixel) in pixels.map(|(x, y, p)| (x, image_height - y, p)) {
+        let acc_color = (0..samples_per_pixel)
+            .map(|_| {
+                let u = (i as f64 + rng.gen_range(0., 1.)) / (image_width - 1) as f64;
+                let v = (j as f64 + rng.gen_range(0., 1.)) / (image_height - 1) as f64;
+                let ray = camera.get_ray(u, v, &mut rng);
+                ray_color(&ray, &world, &mut rng, max_depth)
+            })
+            .fold(Color::new(0., 0., 0.), |a, b| a + b);
+        let pixel_color = acc_color / samples_per_pixel as f64;
+        let rgb = gamma_corrected_rgb(&pixel_color);
+        *pixel = image::Rgb(rgb);
+        progress_bar.inc(1);
     }
+
+    progress_bar.finish();
+
+    match image_buffer.save(output) {
+        Err(image::ImageError::IoError(e)) => return Err(e),
+        Err(e) => panic!("Unexpected error saving to image file: {}", e),
+        Ok(()) => (),
+    }
+
     eprintln!("Done!");
     Ok(())
 }
 
-pub fn write_color(color: &Color, mut out: impl io::Write) -> io::Result<()> {
-    let red = (256. * clamp(color[0].sqrt(), 0., 0.999)) as i32;
-    let green = (256. * clamp(color[1].sqrt(), 0., 0.999)) as i32;
-    let blue = (256. * clamp(color[2].sqrt(), 0., 0.999)) as i32;
-
-    // Now print RGB tripplets
-    writeln!(out, "{} {} {}", red, green, blue)
+fn gamma_corrected_rgb(color: &Color) -> [u8; 3] {
+    let red = (256. * clamp(color[0].sqrt(), 0., 0.999)) as u8;
+    let green = (256. * clamp(color[1].sqrt(), 0., 0.999)) as u8;
+    let blue = (256. * clamp(color[2].sqrt(), 0., 0.999)) as u8;
+    [red, green, blue]
 }
 
 fn ray_color(ray: &Ray, world: &dyn Hittable, rng: &mut ThreadRng, depth: u32) -> Color {

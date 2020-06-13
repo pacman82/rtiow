@@ -16,7 +16,7 @@ use crate::{
     world::create_world,
 };
 use image::ImageBuffer;
-use indicatif::ProgressBar;
+use indicatif::{ProgressBar, ProgressStyle};
 use rand::{rngs::ThreadRng, thread_rng, Rng};
 use std::{io, path::PathBuf};
 use structopt::StructOpt;
@@ -66,6 +66,10 @@ fn main() -> io::Result<()> {
 
     let pixels = image_buffer.enumerate_pixels_mut();
     let progress_bar = ProgressBar::new(pixels.len() as u64);
+    progress_bar.set_style(
+        ProgressStyle::default_bar()
+            .template("[{elapsed_precise}][{eta}] {bar:80.cyan/blue}  "),
+    );
 
     for (i, j, pixel) in pixels.map(|(x, y, p)| (x, image_height - y, p)) {
         let acc_color = (0..samples_per_pixel)

@@ -6,8 +6,8 @@ use crate::{
 };
 use rand::Rng;
 
-pub fn create_world(rng: &mut impl Rng) -> Vec<Box<dyn Hittable>> {
-    let mut world: Vec<Box<dyn Hittable>> = Vec::new();
+pub fn create_world(rng: &mut impl Rng) -> Vec<Box<dyn Hittable + Sync>> {
+    let mut world: Vec<Box<dyn Hittable + Sync>> = Vec::new();
     let ground_material = Lambertian::new(Color::new(0.5, 0.5, 0.5));
 
     world.push(Box::new(Sphere::new(

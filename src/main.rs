@@ -3,6 +3,7 @@
 mod camera;
 mod hittable;
 mod material;
+mod output;
 mod ray;
 mod sphere;
 mod vec3;
@@ -11,13 +12,14 @@ mod world;
 use crate::{
     camera::Camera,
     hittable::Hittable,
+    output::save_image,
     ray::Ray,
     vec3::{Color, Point, Vec3},
     world::create_world,
 };
-use image::ImageBuffer;
 use indicatif::{ProgressBar, ProgressStyle};
 use rand::{rngs::ThreadRng, thread_rng, Rng};
+use rayon::prelude::*;
 use std::{io, path::PathBuf};
 use structopt::StructOpt;
 
@@ -62,47 +64,48 @@ fn main() -> io::Result<()> {
         0.1,
     );
 
-    let mut image_buffer = ImageBuffer::new(image_width, image_height);
-
-    let pixels = image_buffer.enumerate_pixels_mut();
-    let progress_bar = ProgressBar::new(pixels.len() as u64);
+    let progress_bar = ProgressBar::new(image_height as u64 * image_width as u64);
     progress_bar.set_style(
-        ProgressStyle::default_bar()
-            .template("[{elapsed_precise}][{eta}] {bar:80.cyan/blue}  "),
+        ProgressStyle::default_bar().template("[{elapsed_precise}][{eta}] {bar:80.cyan/blue}  "),
     );
 
-    for (i, j, pixel) in pixels.map(|(x, y, p)| (x, image_height - y, p)) {
-        let acc_color = (0..samples_per_pixel)
-            .map(|_| {
-                let u = (i as f64 + rng.gen_range(0., 1.)) / (image_width - 1) as f64;
-                let v = (j as f64 + rng.gen_range(0., 1.)) / (image_height - 1) as f64;
-                let ray = camera.get_ray(u, v, &mut rng);
-                ray_color(&ray, &world, &mut rng, max_depth)
-            })
-            .fold(Color::new(0., 0., 0.), |a, b| a + b);
-        let pixel_color = acc_color / samples_per_pixel as f64;
-        let rgb = gamma_corrected_rgb(&pixel_color);
-        *pixel = image::Rgb(rgb);
-        progress_bar.inc(1);
-    }
+    let _pixels = (0..image_height)
+        .rev()
+        .flat_map(|j| (0..image_width).map(move |i| (i, j)));
+
+    // Probably better to parallise sampling, but let's just hack rayon in there real quick.
+    let mut scanlines = Vec::new();
+    (0..image_height)
+        .into_par_iter()
+        .rev()
+        .map(|j| {
+            let mut rng = thread_rng();
+            let scanline = (0..image_width)
+                .map(|i| {
+                    let acc_color = (0..samples_per_pixel)
+                        .map(|_| {
+                            let u = (i as f64 + rng.gen_range(0., 1.)) / (image_width - 1) as f64;
+                            let v = (j as f64 + rng.gen_range(0., 1.)) / (image_height - 1) as f64;
+                            let ray = camera.get_ray(u, v, &mut rng);
+                            ray_color(&ray, &world, &mut rng, max_depth)
+                        })
+                        .fold(Color::new(0., 0., 0.), |a, b| a + b);
+                    let pixel_color = acc_color / samples_per_pixel as f64;
+                    progress_bar.inc(1);
+                    pixel_color
+                })
+                .collect::<Vec<_>>();
+            scanline
+        })
+        .collect_into_vec(&mut scanlines);
 
     progress_bar.finish();
 
-    match image_buffer.save(output) {
-        Err(image::ImageError::IoError(e)) => return Err(e),
-        Err(e) => panic!("Unexpected error saving to image file: {}", e),
-        Ok(()) => (),
-    }
+    save_image(&scanlines, &output)?;
 
     eprintln!("Done!");
-    Ok(())
-}
 
-fn gamma_corrected_rgb(color: &Color) -> [u8; 3] {
-    let red = (256. * clamp(color[0].sqrt(), 0., 0.999)) as u8;
-    let green = (256. * clamp(color[1].sqrt(), 0., 0.999)) as u8;
-    let blue = (256. * clamp(color[2].sqrt(), 0., 0.999)) as u8;
-    [red, green, blue]
+    Ok(())
 }
 
 fn ray_color(ray: &Ray, world: &dyn Hittable, rng: &mut ThreadRng, depth: u32) -> Color {
@@ -133,14 +136,4 @@ fn ambient(direction: &Vec3) -> Color {
     let blend_start = Color::new(1., 1., 1.);
     let blend_end = Color::new(0.5, 0.7, 1.0);
     blend_start * (1. - t) + blend_end * t
-}
-
-fn clamp(f: f64, low: f64, high: f64) -> f64 {
-    if f < low {
-        low
-    } else if f > high {
-        high
-    } else {
-        f
-    }
 }

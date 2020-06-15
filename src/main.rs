@@ -5,20 +5,20 @@ mod hittable;
 mod material;
 mod output;
 mod ray;
+mod sample;
 mod sphere;
 mod vec3;
 mod world;
 
 use crate::{
     camera::Camera,
-    hittable::Hittable,
     output::save_image,
-    ray::Ray,
+    sample::render_sample,
     vec3::{Color, Point, Vec3},
     world::create_world,
 };
 use indicatif::{ProgressBar, ProgressStyle};
-use rand::{rngs::ThreadRng, thread_rng, Rng};
+use rand::thread_rng;
 use rayon::prelude::*;
 use structopt::StructOpt;
 
@@ -99,6 +99,7 @@ fn main() -> io::Result<()> {
             0,
         )
     };
+    // Render samples in parallel and reduce them to one accumulated color vector.
     let (mut acc_color_buf, num_samples_rendered) = (0..samples_per_pixel)
         .into_par_iter()
         .map(|_| {
@@ -130,66 +131,19 @@ fn main() -> io::Result<()> {
 
     progress_bar.finish();
 
-    let samples_f = num_samples_rendered as f64;
+    if num_samples_rendered == 0 {
+        eprintln!("No samples rendered.")
+    } else {
+        let samples_f = num_samples_rendered as f64;
 
-    for color in &mut acc_color_buf {
-        *color = *color / samples_f;
+        for color in &mut acc_color_buf {
+            *color = *color / samples_f;
+        }
+
+        save_image(&acc_color_buf, image_width, &output)?;
+
+        eprintln!("Done.");
     }
-
-    save_image(&acc_color_buf, image_width, &output)?;
-
-    eprintln!("Done!");
 
     Ok(())
-}
-
-fn render_sample(
-    rng: &mut ThreadRng,
-    max_depth: u32,
-    image_height: u32,
-    image_width: u32,
-    camera: &Camera,
-    world: &dyn Hittable,
-) -> Vec<Color> {
-    let pixels = (0..image_height)
-        .rev()
-        .flat_map(|j| (0..image_width).map(move |i| (i, j)));
-    pixels
-        .map(|(i, j)| {
-            let u = (i as f64 + rng.gen_range(0., 1.)) / (image_width - 1) as f64;
-            let v = (j as f64 + rng.gen_range(0., 1.)) / (image_height - 1) as f64;
-            let ray = camera.get_ray(u, v, rng);
-            ray_color(&ray, world, rng, max_depth)
-        })
-        .collect()
-}
-
-fn ray_color(ray: &Ray, world: &dyn Hittable, rng: &mut ThreadRng, depth: u32) -> Color {
-    if depth == 0 {
-        return Color::new(0., 0., 0.);
-    }
-    if let Some(rec) = world.hit(ray, 0.001, f64::INFINITY) {
-        if let Some(scattered) =
-            rec.material
-                .scatter(rng, &ray.direction, &rec.normal, rec.front_face)
-        {
-            let target = rec.point + scattered.direction;
-            let ray = Ray::from_to(rec.point, target);
-            &ray_color(&ray, world, rng, depth - 1) * &scattered.attenuation
-        } else {
-            Color::new(0., 0., 0.)
-        }
-    } else {
-        ambient(&ray.direction)
-    }
-}
-
-fn ambient(direction: &Vec3) -> Color {
-    // y is between -1 and 1
-    let y = direction.unit().y();
-    // 0 <= t <= 1
-    let t = (y + 1.) / 2.;
-    let blend_start = Color::new(1., 1., 1.);
-    let blend_end = Color::new(0.5, 0.7, 1.0);
-    blend_start * (1. - t) + blend_end * t
 }

@@ -3,7 +3,8 @@ use image::ImageBuffer;
 use std::{io, path::Path};
 
 pub fn save_image(color_buf: &Vec<Color>, image_width: u32, output: &Path) -> io::Result<()> {
-    let mut image_buffer = ImageBuffer::new(image_width, (color_buf.len() / image_width as usize) as u32);
+    let mut image_buffer =
+        ImageBuffer::new(image_width, (color_buf.len() / image_width as usize) as u32);
 
     for (x, y, pixel) in image_buffer.enumerate_pixels_mut() {
         let rgb = gamma_corrected_rgb(&color_buf[(y * image_width + x) as usize]);

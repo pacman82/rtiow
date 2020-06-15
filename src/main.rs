@@ -6,17 +6,11 @@ mod material;
 mod output;
 mod ray;
 mod sample;
+mod scene;
 mod sphere;
 mod vec3;
-mod world;
 
-use crate::{
-    camera::Camera,
-    output::save_image,
-    sample::render_sample,
-    vec3::{Color, Point, Vec3},
-    world::create_world,
-};
+use crate::{output::save_image, sample::render_sample, scene::Scene, vec3::Color};
 use indicatif::{ProgressBar, ProgressStyle};
 use rand::thread_rng;
 use rayon::prelude::*;
@@ -66,21 +60,7 @@ fn main() -> io::Result<()> {
 
     let mut rng = thread_rng();
 
-    let world = create_world(&mut rng);
-
-    let lookfrom = Point::new(13., 2., 3.);
-    let lookat = Point::new(0., 0., 0.);
-    let distance_to_focus = 10.;
-
-    let camera = Camera::new(
-        20.,
-        aspect_ratio,
-        lookfrom,
-        lookat,
-        Vec3::new(0., 1., 0.),
-        distance_to_focus,
-        0.1,
-    );
+    let scene = Scene::mostly_random_spheres(&mut rng, aspect_ratio);
 
     eprintln!(
         "Start rendering samples. You can press Ctrl+C to finish rendering the current samples and \
@@ -111,8 +91,8 @@ fn main() -> io::Result<()> {
                         max_depth,
                         image_height,
                         image_width,
-                        &camera,
-                        &world,
+                        &scene.camera,
+                        &scene.world,
                     ),
                     1,
                 )

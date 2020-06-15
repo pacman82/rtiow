@@ -1,12 +1,40 @@
 use crate::{
+    camera::Camera,
     hittable::Hittable,
     material::{Dielectric, Lambertian, Metal},
     sphere::Sphere,
-    vec3::{Color, Point},
+    vec3::{Color, Point, Vec3},
 };
 use rand::Rng;
 
-pub fn create_world(rng: &mut impl Rng) -> Vec<Box<dyn Hittable + Sync + Send>> {
+pub struct Scene {
+    pub world: Vec<Box<dyn Hittable + Sync + Send>>,
+    pub camera: Camera,
+}
+
+impl Scene {
+    pub fn mostly_random_spheres(rng: &mut impl Rng, aspect_ratio: f64) -> Self {
+        let lookfrom = Point::new(13., 2., 3.);
+        let lookat = Point::new(0., 0., 0.);
+        let distance_to_focus = 10.;
+
+        let camera = Camera::new(
+            20.,
+            aspect_ratio,
+            lookfrom,
+            lookat,
+            Vec3::new(0., 1., 0.),
+            distance_to_focus,
+            0.1,
+        );
+
+        let world = create_world_with_random_spheres(rng);
+
+        Scene { world, camera }
+    }
+}
+
+fn create_world_with_random_spheres(rng: &mut impl Rng) -> Vec<Box<dyn Hittable + Sync + Send>> {
     let mut world: Vec<Box<dyn Hittable + Sync + Send>> = Vec::new();
     let ground_material = Lambertian::new(Color::new(0.5, 0.5, 0.5));
 

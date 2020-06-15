@@ -64,7 +64,7 @@ fn main() -> io::Result<()> {
         0.1,
     );
 
-    let progress_bar = ProgressBar::new(image_height as u64 * image_width as u64);
+    let progress_bar = ProgressBar::new(samples_per_pixel as u64);
     progress_bar.set_style(
         ProgressStyle::default_bar().template("[{elapsed_precise}][{eta}] {bar:80.cyan/blue}  "),
     );
@@ -73,39 +73,63 @@ fn main() -> io::Result<()> {
         .rev()
         .flat_map(|j| (0..image_width).map(move |i| (i, j)));
 
-    // Probably better to parallise sampling, but let's just hack rayon in there real quick.
-    let mut scanlines = Vec::new();
-    (0..image_height)
+    let neutral = || vec![Color::new(0., 0., 0.); image_height as usize * image_width as usize];
+    let mut acc_color_buf: Vec<Color> = (0..samples_per_pixel)
         .into_par_iter()
-        .rev()
-        .map(|j| {
+        .map(|_| {
             let mut rng = thread_rng();
-            let scanline = (0..image_width)
-                .map(|i| {
-                    let acc_color = (0..samples_per_pixel)
-                        .map(|_| {
-                            let u = (i as f64 + rng.gen_range(0., 1.)) / (image_width - 1) as f64;
-                            let v = (j as f64 + rng.gen_range(0., 1.)) / (image_height - 1) as f64;
-                            let ray = camera.get_ray(u, v, &mut rng);
-                            ray_color(&ray, &world, &mut rng, max_depth)
-                        })
-                        .fold(Color::new(0., 0., 0.), |a, b| a + b);
-                    let pixel_color = acc_color / samples_per_pixel as f64;
-                    progress_bar.inc(1);
-                    pixel_color
-                })
-                .collect::<Vec<_>>();
-            scanline
+            let sample = render_sample(
+                &mut rng,
+                max_depth,
+                image_height,
+                image_width,
+                &camera,
+                &world,
+            );
+            progress_bar.inc(1);
+            sample
         })
-        .collect_into_vec(&mut scanlines);
+        .reduce(neutral, |mut acc, sample| {
+            for index in 0..acc.len() {
+                acc[index] = acc[index] + sample[index];
+            }
+            acc
+        });
 
     progress_bar.finish();
 
-    save_image(&scanlines, &output)?;
+    let samples_f = samples_per_pixel as f64;
+
+    for color in &mut acc_color_buf {
+        *color = *color / samples_f;
+    }
+
+    save_image(&acc_color_buf, image_width, &output)?;
 
     eprintln!("Done!");
 
     Ok(())
+}
+
+fn render_sample(
+    rng: &mut ThreadRng,
+    max_depth: u32,
+    image_height: u32,
+    image_width: u32,
+    camera: &Camera,
+    world: &dyn Hittable,
+) -> Vec<Color> {
+    let pixels = (0..image_height)
+        .rev()
+        .flat_map(|j| (0..image_width).map(move |i| (i, j)));
+    pixels
+        .map(|(i, j)| {
+            let u = (i as f64 + rng.gen_range(0., 1.)) / (image_width - 1) as f64;
+            let v = (j as f64 + rng.gen_range(0., 1.)) / (image_height - 1) as f64;
+            let ray = camera.get_ray(u, v, rng);
+            ray_color(&ray, world, rng, max_depth)
+        })
+        .collect()
 }
 
 fn ray_color(ray: &Ray, world: &dyn Hittable, rng: &mut ThreadRng, depth: u32) -> Color {

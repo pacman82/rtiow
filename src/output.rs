@@ -2,11 +2,11 @@ use crate::Color;
 use image::ImageBuffer;
 use std::{io, path::Path};
 
-pub fn save_image(scanlines: &Vec<Vec<Color>>, output: &Path) -> io::Result<()> {
-    let mut image_buffer = ImageBuffer::new(scanlines[0].len() as u32, scanlines.len() as u32);
+pub fn save_image(color_buf: &Vec<Color>, image_width: u32, output: &Path) -> io::Result<()> {
+    let mut image_buffer = ImageBuffer::new(image_width, (color_buf.len() / image_width as usize) as u32);
 
     for (x, y, pixel) in image_buffer.enumerate_pixels_mut() {
-        let rgb = gamma_corrected_rgb(&scanlines[y as usize][x as usize]);
+        let rgb = gamma_corrected_rgb(&color_buf[(y * image_width + x) as usize]);
         *pixel = image::Rgb(rgb);
     }
 
@@ -19,7 +19,7 @@ pub fn save_image(scanlines: &Vec<Vec<Color>>, output: &Path) -> io::Result<()> 
                 eprintln!("I'll try to save into an `.png` file instead.");
                 let mut new_path = output.to_path_buf();
                 new_path.set_extension("png");
-                save_image(scanlines, &new_path)?;
+                save_image(color_buf, image_width, &new_path)?;
             } else {
                 panic!("Unexpected error saving to image file: {}", e)
             }

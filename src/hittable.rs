@@ -1,37 +1,19 @@
 use crate::{
     material::Material,
     ray::Ray,
-    vec3::{dot, Point, Vec3},
+    shape::{Intersection, Shape},
 };
 use std::ops::Deref;
 
 pub struct HitRecord<'m> {
-    pub t: f64,
-    pub point: Point,
-    pub front_face: bool,
-    /// Always pointing against the intersecting ray.
-    pub normal: Vec3,
+    pub intersection: Intersection,
     pub material: &'m dyn Material,
 }
 
 impl<'m> HitRecord<'m> {
-    pub fn from_outward_normal(
-        t: f64,
-        ray: &Ray,
-        outward_normal: Vec3,
-        material: &'m dyn Material,
-    ) -> Self {
-        let point = ray.at(t);
-        let front_face = dot(outward_normal, ray.direction) < 0.;
+    pub fn new(intersection: Intersection, material: &'m dyn Material) -> Self {
         Self {
-            t,
-            point,
-            front_face,
-            normal: if front_face {
-                outward_normal
-            } else {
-                -outward_normal
-            },
+            intersection,
             material,
         }
     }
@@ -47,7 +29,7 @@ where
 {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         self.iter().fold(None, |rec, hittable| {
-            let closest_so_far = rec.as_ref().map(|r| r.t).unwrap_or(t_max);
+            let closest_so_far = rec.as_ref().map(|r| r.intersection.t).unwrap_or(t_max);
             if let Some(rec) = hittable.hit(ray, t_min, closest_so_far) {
                 Some(rec)
             } else {
@@ -63,5 +45,28 @@ where
 {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
         self.deref().hit(ray, t_min, t_max)
+    }
+}
+
+pub struct ShapeWithMaterial<S, M> {
+    shape: S,
+    material: M,
+}
+
+impl<S, M> ShapeWithMaterial<S, M> {
+    pub fn new(shape: S, material: M) -> Self {
+        ShapeWithMaterial { shape, material }
+    }
+}
+
+impl<S, M> Hittable for ShapeWithMaterial<S, M>
+where
+    S: Shape,
+    M: Material,
+{
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+        self.shape
+            .intersect(ray, t_min, t_max)
+            .map(|intersection| HitRecord::new(intersection, &self.material))
     }
 }

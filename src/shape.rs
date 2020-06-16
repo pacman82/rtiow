@@ -1,31 +1,51 @@
 use crate::{
-    hittable::{HitRecord, Hittable},
-    material::Material,
     ray::Ray,
-    vec3::{dot, Point},
+    vec3::{dot, Point, Vec3},
 };
 
-pub struct Sphere<M> {
-    center: Point,
-    radius: f64,
-    material: M,
+// A physical volume (without any material associated yet).
+pub trait Shape {
+    fn intersect(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<Intersection>;
 }
 
-impl<M> Sphere<M> {
-    pub fn new(center: Point, radius: f64, material: M) -> Self {
-        Sphere {
-            center,
-            radius,
-            material,
+pub struct Intersection {
+    pub t: f64,
+    pub point: Point,
+    pub front_face: bool,
+    /// Always pointing against the intersecting ray.
+    pub normal: Vec3,
+}
+
+impl Intersection {
+    pub fn from_outward_normal(t: f64, ray: &Ray, outward_normal: Vec3) -> Self {
+        let point = ray.at(t);
+        let front_face = dot(outward_normal, ray.direction) < 0.;
+        Self {
+            t,
+            point,
+            front_face,
+            normal: if front_face {
+                outward_normal
+            } else {
+                -outward_normal
+            },
         }
     }
 }
 
-impl<M> Hittable for Sphere<M>
-where
-    M: Material,
-{
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
+pub struct Sphere {
+    center: Point,
+    radius: f64,
+}
+
+impl Sphere {
+    pub fn new(center: Point, radius: f64) -> Self {
+        Sphere { center, radius }
+    }
+}
+
+impl Shape for Sphere {
+    fn intersect(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<Intersection> {
         // Transform coordinats so sphere is in the center.
         let origin = ray.origin - self.center;
         // r^2 == (t * D + O) * (t * D + O)
@@ -62,7 +82,7 @@ where
             let point = ray.at(t);
             let outward_normal = (point - self.center) / self.radius;
 
-            HitRecord::from_outward_normal(t, ray, outward_normal, &self.material)
+            Intersection::from_outward_normal(t, ray, outward_normal)
         })
     }
 }

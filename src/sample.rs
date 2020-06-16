@@ -32,12 +32,14 @@ fn ray_color(ray: &Ray, world: &dyn Hittable, rng: &mut ThreadRng, depth: u32) -
         return Color::new(0., 0., 0.);
     }
     if let Some(rec) = world.hit(ray, 0.001, f64::INFINITY) {
-        if let Some(scattered) =
-            rec.material
-                .scatter(rng, &ray.direction, &rec.normal, rec.front_face)
-        {
-            let target = rec.point + scattered.direction;
-            let ray = Ray::from_to(rec.point, target);
+        if let Some(scattered) = rec.material.scatter(
+            rng,
+            &ray.direction,
+            &rec.intersection.normal,
+            rec.intersection.front_face,
+        ) {
+            let target = rec.intersection.point + scattered.direction;
+            let ray = Ray::from_to(rec.intersection.point, target);
             &ray_color(&ray, world, rng, depth - 1) * &scattered.attenuation
         } else {
             Color::new(0., 0., 0.)

@@ -7,7 +7,7 @@ mod output;
 mod ray;
 mod sample;
 mod scene;
-mod sphere;
+mod shape;
 mod vec3;
 
 use crate::{output::save_image, sample::render_sample, scene::Scene, vec3::Color};

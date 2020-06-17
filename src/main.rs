@@ -1,5 +1,6 @@
 // https://raytracing.github.io/books/RayTracingInOneWeekend.html
 // Online ppm viewer: http://cs.rhodes.edu/welshc/COMP141_F16/ppmReader.html
+mod persistence;
 mod camera;
 mod hittable;
 mod material;
@@ -10,7 +11,9 @@ mod scene;
 mod shape;
 mod vec3;
 
-use crate::{output::save_image, sample::render_sample, scene::Scene, vec3::Color};
+use crate::{
+    persistence::SceneBuilder, output::save_image, sample::render_sample, vec3::Color,
+};
 use indicatif::{ProgressBar, ProgressStyle};
 use rand::thread_rng;
 use rayon::prelude::*;
@@ -25,14 +28,25 @@ use std::{
     },
 };
 
+/// A ray tracer based on the methods presented in the Ray Tracing in one Weekend tutorial.
 #[derive(StructOpt)]
 struct Cli {
+    /// Number of rays calculated for each pixel. Larger numbers produce smoother and less dotty
+    /// pictures, but calculation time increases linear with larger numbers.
     #[structopt(long, default_value = "100")]
     samples_per_pixel: u32,
+    /// Maximum number of "bounces" calculated for each Ray.
     #[structopt(long, default_value = "50")]
     max_depth: u32,
+    /// Horizontal width of the Picture. Vertical height is calculated from this in combinatino with
+    /// Aspect ratio.
     #[structopt(long, default_value = "384")]
     image_width: u32,
+    /// Path to a JSON file describing the Scene to be rendered. If no value is given a picture with
+    /// mostly random spheres is used.
+    #[structopt(long, short = "i")]
+    input: Option<PathBuf>,
+    /// The rendered Scene is going to be saved in this file.
     #[structopt(long, short = "o", default_value = "image.png")]
     output: PathBuf,
 }
@@ -52,6 +66,7 @@ fn main() -> io::Result<()> {
         samples_per_pixel,
         max_depth,
         image_width,
+        input,
         output,
     } = Cli::from_args();
 
@@ -60,7 +75,14 @@ fn main() -> io::Result<()> {
 
     let mut rng = thread_rng();
 
-    let scene = Scene::mostly_random_spheres(&mut rng, aspect_ratio);
+    let scene = if let Some(path) = input {
+        SceneBuilder::from_path(path)?
+    } else {
+        let scene = SceneBuilder::mostly_random_spheres(&mut rng, aspect_ratio);
+        eprintln!("No input scene specified. Saving scene with random spheres to 'scene.json'.");
+        scene.to_path("scene.json")?;
+        scene
+    }.build();
 
     eprintln!(
         "Start rendering samples. You can press Ctrl+C to finish rendering the current samples and \

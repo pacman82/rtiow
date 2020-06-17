@@ -1,10 +1,11 @@
 use rand::Rng;
+use serde::{Deserialize, Serialize};
 use std::ops::{Add, Deref, DerefMut, Div, Mul, Neg, Sub, SubAssign};
 
 pub type Color = Vec3;
 pub type Point = Vec3;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Serialize, Deserialize)]
 pub struct Vec3([f64; 3]);
 
 impl Vec3 {

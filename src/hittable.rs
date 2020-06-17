@@ -3,7 +3,6 @@ use crate::{
     ray::Ray,
     shape::{Intersection, Shape},
 };
-use std::ops::Deref;
 
 pub struct HitRecord<'m> {
     pub intersection: Intersection,
@@ -44,7 +43,7 @@ where
     T: Hittable + ?Sized,
 {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
-        self.deref().hit(ray, t_min, t_max)
+        self.as_ref().hit(ray, t_min, t_max)
     }
 }
 

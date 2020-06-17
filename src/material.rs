@@ -20,6 +20,21 @@ pub trait Material {
     ) -> Option<ScatterResult>;
 }
 
+impl<M> Material for Box<M>
+where
+    M: Material + ?Sized,
+{
+    fn scatter(
+        &self,
+        rng: &mut ThreadRng,
+        incoming: &Vec3,
+        normal: &Vec3,
+        front_face: bool,
+    ) -> Option<ScatterResult> {
+        self.as_ref().scatter(rng, incoming, normal, front_face)
+    }
+}
+
 pub struct ScatterResult {
     pub attenuation: Color,
     pub direction: Vec3,

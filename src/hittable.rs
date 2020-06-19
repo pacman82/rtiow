@@ -47,25 +47,14 @@ where
     }
 }
 
-pub struct ShapeWithMaterial<S, M> {
-    shape: S,
-    material: M,
-}
-
-impl<S, M> ShapeWithMaterial<S, M> {
-    pub fn new(shape: S, material: M) -> Self {
-        ShapeWithMaterial { shape, material }
-    }
-}
-
-impl<S, M> Hittable for ShapeWithMaterial<S, M>
+impl<S, M> Hittable for (S,M)
 where
     S: Shape,
     M: Material,
 {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<HitRecord> {
-        self.shape
+        self.0
             .intersect(ray, t_min, t_max)
-            .map(|intersection| HitRecord::new(intersection, &self.material))
+            .map(|intersection| HitRecord::new(intersection, &self.1))
     }
 }

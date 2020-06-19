@@ -1,6 +1,6 @@
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-use std::ops::{Add, Deref, DerefMut, Div, Mul, Neg, Sub, SubAssign};
+use std::ops::{Add, AddAssign, Deref, DerefMut, Div, Mul, Neg, Sub, SubAssign};
 
 pub type Color = Vec3;
 pub type Point = Vec3;
@@ -109,6 +109,14 @@ impl SubAssign for Vec3 {
     fn sub_assign(&mut self, rhs: Self) {
         for i in 0..3 {
             self[i] -= rhs[i]
+        }
+    }
+}
+
+impl AddAssign for Vec3 {
+    fn add_assign(&mut self, rhs: Self) {
+        for i in 0..3 {
+            self[i] += rhs[i]
         }
     }
 }

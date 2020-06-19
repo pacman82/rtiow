@@ -53,6 +53,14 @@ impl Camera {
         }
     }
 
+    /// Creates a random ray
+    ///
+    /// # Parameters
+    ///
+    /// * `s`: horizontal coordinate of the projection plane going from left to right and zero to
+    /// one.
+    /// * `t`: vertical coordinate of the projection plane going from bottom to top and zero to one.
+    /// * `rng`: Used to generate random minor shifts in rays position for sampling.
     pub fn get_ray(&self, s: f64, t: f64, rng: &mut impl Rng) -> Ray {
         let rd = random_in_unit_disk(rng) * self.lens_radius;
         let offset = self.u * rd.x() + self.v * rd.y();

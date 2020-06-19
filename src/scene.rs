@@ -1,7 +1,4 @@
-use crate::{
-    camera::Camera,
-    hittable::Hittable,
-};
+use crate::{camera::Camera, hittable::Hittable};
 
 pub struct Scene {
     pub world: Vec<Box<dyn Hittable + Sync + Send>>,

@@ -1,19 +1,17 @@
 // https://raytracing.github.io/books/RayTracingInOneWeekend.html
 // Online ppm viewer: http://cs.rhodes.edu/welshc/COMP141_F16/ppmReader.html
-mod persistence;
 mod camera;
 mod hittable;
 mod material;
 mod output;
+mod persistence;
 mod ray;
 mod sample;
 mod scene;
 mod shape;
 mod vec3;
 
-use crate::{
-    persistence::SceneBuilder, output::save_image, sample::render_sample, vec3::Color,
-};
+use crate::{output::save_image, persistence::SceneBuilder, sample::render_sample, vec3::Color};
 use indicatif::{ProgressBar, ProgressStyle};
 use rand::thread_rng;
 use rayon::prelude::*;
@@ -82,7 +80,8 @@ fn main() -> io::Result<()> {
         eprintln!("No input scene specified. Saving scene with random spheres to 'scene.json'.");
         scene.to_path("scene.json")?;
         scene
-    }.build();
+    }
+    .build();
 
     eprintln!(
         "Start rendering samples. You can press Ctrl+C to finish rendering the current samples and \

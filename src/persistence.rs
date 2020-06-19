@@ -1,6 +1,6 @@
 use crate::{
     camera::Camera,
-    hittable::{Hittable, ShapeWithMaterial},
+    hittable::Hittable,
     material::{Dielectric, Lambertian, Material, Metal},
     scene::Scene,
     shape::Sphere,
@@ -13,13 +13,7 @@ use std::{fs::read_to_string, io, path::Path};
 /// Serializable representation of a Scene. Used to persist scenes to '.toml' files.
 #[derive(Serialize, Deserialize)]
 pub struct SceneBuilder {
-    lookfrom: Point,
-    lookat: Point,
-    distance_to_focus: f64,
-    vertical_field_of_view: f64,
-    view_up: Vec3,
-    aspect_ratio: f64,
-    aperture: f64,
+    camera: CameraBuilder,
     world: Vec<ShapeWithMaterialBuilder>,
 }
 
@@ -30,7 +24,7 @@ impl SceneBuilder {
         Ok(desc)
     }
 
-    pub fn to_path(&self, path: impl AsRef<Path>) -> io::Result <()> {
+    pub fn to_path(&self, path: impl AsRef<Path>) -> io::Result<()> {
         let text = serde_json::to_string_pretty(self).unwrap();
         std::fs::write(&path, text)
     }
@@ -115,20 +109,47 @@ impl SceneBuilder {
             },
         });
 
-        Self {
+        let camera = CameraBuilder {
+            vertical_field_of_view: 20.,
+            aspect_ratio,
             lookfrom: Point::new(13., 2., 3.),
             lookat: Point::new(0., 0., 0.),
-            distance_to_focus: 10.,
-            vertical_field_of_view: 20.,
-            aperture: 0.1,
-            aspect_ratio,
             view_up: Vec3::new(0., 1., 0.),
-            world,
-        }
+            distance_to_focus: 10.,
+            aperture: 0.1,
+        };
+
+        Self { camera, world }
     }
 
     pub fn build(&self) -> Scene {
-        let camera = Camera::new(
+        let world = self.world.iter().map(|model| model.build()).collect();
+        let camera = self.camera.build();
+
+        Scene::new(world, camera)
+    }
+}
+
+#[derive(Serialize, Deserialize)]
+pub struct CameraBuilder {
+    vertical_field_of_view: f64,
+    /// Width divided by height of the image to render.
+    aspect_ratio: f64,
+    /// Position of the camera.
+    lookfrom: Point,
+    /// Point the camera is looking at. Used to determine the direction of the camera.
+    lookat: Point,
+    view_up: Vec3,
+    distance_to_focus: f64,
+    aperture: f64,
+    // /// Use this for motion blur. Rays will be emitted randomly between t0=0 and t1=exposure_time.
+    // /// Can also be understood as the time it takes for the shutter to close.
+    // exposure_time: f64,
+}
+
+impl CameraBuilder {
+    fn build(&self) -> Camera {
+        Camera::new(
             self.vertical_field_of_view,
             self.aspect_ratio,
             self.lookfrom,
@@ -136,11 +157,7 @@ impl SceneBuilder {
             self.view_up,
             self.distance_to_focus,
             self.aperture,
-        );
-
-        let world = self.world.iter().map(|model| model.build()).collect();
-
-        Scene::new(world, camera)
+        )
     }
 }
 
@@ -184,9 +201,6 @@ struct ShapeWithMaterialBuilder {
 
 impl ShapeWithMaterialBuilder {
     fn build(&self) -> Box<dyn Hittable + Send + Sync> {
-        Box::new(ShapeWithMaterial::new(
-            self.shape.build(),
-            self.material.build(),
-        ))
+        Box::new((self.shape.build(), self.material.build()))
     }
 }

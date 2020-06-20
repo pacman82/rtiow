@@ -12,6 +12,7 @@ pub struct Camera {
     lens_radius: f64,
     u: Vec3,
     v: Vec3,
+    exposure_time: f64,
 }
 
 impl Camera {
@@ -23,6 +24,7 @@ impl Camera {
         view_up: Vec3,
         distance_to_focus: f64,
         aperture: f64,
+        exposure_time: f64,
     ) -> Self {
         let theta = vertical_field_of_view.to_radians();
         let h = (theta / 2.).tan();
@@ -50,6 +52,7 @@ impl Camera {
             lens_radius,
             u,
             v,
+            exposure_time,
         }
     }
 
@@ -69,6 +72,11 @@ impl Camera {
             self.origin + offset,
             self.lower_left_corner + self.horizontal * s + self.vertical * t,
         )
+    }
+
+    /// Get a random point in time, between 0 and exposure time.
+    pub fn get_time(&self, rng: &mut impl Rng) -> f64 {
+        rng.gen_range(0., self.exposure_time)
     }
 }
 

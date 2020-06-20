@@ -22,16 +22,17 @@ pub fn render_sample(
             let u = (i as f64 + rng.gen_range(0., 1.)) / (image_width - 1) as f64;
             let v = (j as f64 + rng.gen_range(0., 1.)) / (image_height - 1) as f64;
             let ray = camera.get_ray(u, v, rng);
-            ray_color(&ray, world, rng, max_depth)
+            let time = camera.get_time(rng);
+            ray_color(&ray, time, world, rng, max_depth)
         })
         .collect()
 }
 
-fn ray_color(ray: &Ray, world: &dyn Hittable, rng: &mut ThreadRng, depth: u32) -> Color {
+fn ray_color(ray: &Ray, time: f64, world: &dyn Hittable, rng: &mut ThreadRng, depth: u32) -> Color {
     if depth == 0 {
         return Color::new(0., 0., 0.);
     }
-    if let Some(rec) = world.hit(ray, 0.001, f64::INFINITY) {
+    if let Some(rec) = world.hit(ray, 0.001, f64::INFINITY, time) {
         if let Some(scattered) = rec.material.scatter(
             rng,
             &ray.direction,
@@ -40,7 +41,7 @@ fn ray_color(ray: &Ray, world: &dyn Hittable, rng: &mut ThreadRng, depth: u32) -
         ) {
             let target = rec.intersection.point + scattered.direction;
             let ray = Ray::from_to(rec.intersection.point, target);
-            &ray_color(&ray, world, rng, depth - 1) * &scattered.attenuation
+            &ray_color(&ray, time, world, rng, depth - 1) * &scattered.attenuation
         } else {
             Color::new(0., 0., 0.)
         }

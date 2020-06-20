@@ -2,6 +2,7 @@ use crate::{
     camera::Camera,
     hittable::Hittable,
     material::{Dielectric, Lambertian, Material, Metal},
+    moving::Moving,
     scene::Scene,
     shape::Sphere,
     vec3::{Color, Point, Vec3},
@@ -14,7 +15,7 @@ use std::{fs::read_to_string, io, path::Path};
 #[derive(Serialize, Deserialize)]
 pub struct SceneBuilder {
     camera: CameraBuilder,
-    world: Vec<ShapeWithMaterialBuilder>,
+    world: Vec<HittableBuilder>,
 }
 
 impl SceneBuilder {
@@ -35,12 +36,13 @@ impl SceneBuilder {
             albedo: Color::new(0.5, 0.5, 0.5),
         };
 
-        world.push(ShapeWithMaterialBuilder {
+        world.push(HittableBuilder {
             shape: ShapeBuilder::Sphere {
                 center: Point::new(0., -1000., 0.),
                 radius: 1000.,
             },
             material: ground_material,
+            velocity: None,
         });
 
         let small_radius = 0.2;
@@ -66,19 +68,20 @@ impl SceneBuilder {
                             refractive_index: 1.5,
                         }
                     };
-                    let little_ball = ShapeWithMaterialBuilder {
+                    let little_ball = HittableBuilder {
                         shape: ShapeBuilder::Sphere {
                             center,
                             radius: small_radius,
                         },
                         material,
+                        velocity: Some(Vec3::new(0., rng.gen_range(0., 0.5), 0.)),
                     };
                     world.push(little_ball);
                 }
             }
         }
 
-        world.push(ShapeWithMaterialBuilder {
+        world.push(HittableBuilder {
             shape: ShapeBuilder::Sphere {
                 center: Point::new(0., 1., 0.),
                 radius: 1.0,
@@ -86,9 +89,10 @@ impl SceneBuilder {
             material: MaterialBuilder::Dielectric {
                 refractive_index: 1.5,
             },
+            velocity: None,
         });
 
-        world.push(ShapeWithMaterialBuilder {
+        world.push(HittableBuilder {
             shape: ShapeBuilder::Sphere {
                 center: Point::new(-4., 1., 0.),
                 radius: 1.0,
@@ -96,9 +100,10 @@ impl SceneBuilder {
             material: MaterialBuilder::Diffuse {
                 albedo: Color::new(0.4, 0.2, 0.1),
             },
+            velocity: None,
         });
 
-        world.push(ShapeWithMaterialBuilder {
+        world.push(HittableBuilder {
             shape: ShapeBuilder::Sphere {
                 center: Point::new(4., 1., 0.),
                 radius: 1.0,
@@ -107,6 +112,7 @@ impl SceneBuilder {
                 albedo: Color::new(0.7, 0.6, 0.5),
                 fuzziness: 0.,
             },
+            velocity: None,
         });
 
         let camera = CameraBuilder {
@@ -117,6 +123,7 @@ impl SceneBuilder {
             view_up: Vec3::new(0., 1., 0.),
             distance_to_focus: 10.,
             aperture: 0.1,
+            exposure_time: 1.,
         };
 
         Self { camera, world }
@@ -142,9 +149,9 @@ pub struct CameraBuilder {
     view_up: Vec3,
     distance_to_focus: f64,
     aperture: f64,
-    // /// Use this for motion blur. Rays will be emitted randomly between t0=0 and t1=exposure_time.
-    // /// Can also be understood as the time it takes for the shutter to close.
-    // exposure_time: f64,
+    /// Use this for motion blur. Rays will be emitted randomly between t0=0 and t1=exposure_time.
+    /// Can also be understood as the time it takes for the shutter to close.
+    exposure_time: f64,
 }
 
 impl CameraBuilder {
@@ -157,6 +164,7 @@ impl CameraBuilder {
             self.view_up,
             self.distance_to_focus,
             self.aperture,
+            self.exposure_time,
         )
     }
 }
@@ -194,13 +202,21 @@ impl ShapeBuilder {
 }
 
 #[derive(Serialize, Deserialize)]
-struct ShapeWithMaterialBuilder {
+struct HittableBuilder {
     shape: ShapeBuilder,
     material: MaterialBuilder,
+    velocity: Option<Vec3>,
 }
 
-impl ShapeWithMaterialBuilder {
+impl HittableBuilder {
     fn build(&self) -> Box<dyn Hittable + Send + Sync> {
-        Box::new((self.shape.build(), self.material.build()))
+        if let Some(velocity) = self.velocity {
+            Box::new(Moving::new(
+                velocity,
+                (self.shape.build(), self.material.build()),
+            ))
+        } else {
+            Box::new((self.shape.build(), self.material.build()))
+        }
     }
 }

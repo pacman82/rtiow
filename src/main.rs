@@ -3,6 +3,7 @@
 mod camera;
 mod hittable;
 mod material;
+mod moving;
 mod output;
 mod persistence;
 mod ray;

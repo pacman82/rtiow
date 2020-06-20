@@ -56,17 +56,23 @@ impl SceneBuilder {
                 );
 
                 if (center - Point::new(4., small_radius, 0.)).length() > 0.9 {
-                    let material = if rng.gen_bool(0.8) {
+                    let (material, velocity) = if rng.gen_bool(0.8) {
                         let albedo = &Color::random(rng, 0., 1.) * &Color::random(rng, 0., 1.);
-                        MaterialBuilder::Diffuse { albedo }
+                        (
+                            MaterialBuilder::Diffuse { albedo },
+                            Some(Vec3::new(0., rng.gen_range(0., 0.5), 0.)),
+                        )
                     } else if rng.gen_bool(0.75) {
                         let albedo = Color::random(rng, 0.5, 1.);
                         let fuzziness = rng.gen_range(0., 0.5);
-                        MaterialBuilder::Metal { albedo, fuzziness }
+                        (MaterialBuilder::Metal { albedo, fuzziness }, None)
                     } else {
-                        MaterialBuilder::Dielectric {
-                            refractive_index: 1.5,
-                        }
+                        (
+                            MaterialBuilder::Dielectric {
+                                refractive_index: 1.5,
+                            },
+                            None,
+                        )
                     };
                     let little_ball = HittableBuilder {
                         shape: ShapeBuilder::Sphere {
@@ -74,7 +80,7 @@ impl SceneBuilder {
                             radius: small_radius,
                         },
                         material,
-                        velocity: Some(Vec3::new(0., rng.gen_range(0., 0.5), 0.)),
+                        velocity,
                     };
                     world.push(little_ball);
                 }

@@ -1,6 +1,6 @@
 use crate::{
+    bvh::{into_bounding_volume_hierarchy, BoundedHittable},
     camera::Camera,
-    hittable::Hittable,
     material::{Dielectric, Lambertian, Material, Metal},
     moving::Moving,
     scene::Scene,
@@ -136,7 +136,10 @@ impl SceneBuilder {
     }
 
     pub fn build(&self) -> Scene {
-        let world = self.world.iter().map(|model| model.build()).collect();
+        let hittables = self.world.iter().map(|model| model.build()).collect();
+        let world = into_bounding_volume_hierarchy(hittables, self.camera.exposure_time);
+        // let hittables: Vec<_> = self.world.iter().map(|model| model.build()).collect();
+        // let world = Box::new(hittables);
         let camera = self.camera.build();
 
         Scene::new(world, camera)
@@ -215,7 +218,7 @@ struct HittableBuilder {
 }
 
 impl HittableBuilder {
-    fn build(&self) -> Box<dyn Hittable + Send + Sync> {
+    fn build(&self) -> Box<dyn BoundedHittable> {
         if let Some(velocity) = self.velocity {
             Box::new(Moving::new(
                 velocity,

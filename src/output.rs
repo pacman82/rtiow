@@ -2,7 +2,7 @@ use crate::Color;
 use image::ImageBuffer;
 use std::{io, path::Path};
 
-pub fn save_image(color_buf: &Vec<Color>, image_width: u32, output: &Path) -> io::Result<()> {
+pub fn save_image(color_buf: &[Color], image_width: u32, output: &Path) -> io::Result<()> {
     let mut image_buffer =
         ImageBuffer::new(image_width, (color_buf.len() / image_width as usize) as u32);
 

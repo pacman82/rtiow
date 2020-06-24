@@ -1,4 +1,5 @@
 use crate::{
+    bounding_box::{Aabb, BoundingBox},
     ray::Ray,
     vec3::{dot, Point, Vec3},
 };
@@ -84,5 +85,12 @@ impl Shape for Sphere {
 
             Intersection::from_outward_normal(t, ray, outward_normal)
         })
+    }
+}
+
+impl BoundingBox for Sphere {
+    fn bounding_box(&self, _exposure_time: f64) -> Aabb {
+        let r3 = Vec3::new(self.radius, self.radius, self.radius);
+        Aabb::new(self.center - r3, self.center + r3)
     }
 }

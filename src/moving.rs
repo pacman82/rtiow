@@ -1,4 +1,5 @@
 use crate::{
+    bounding_box::{Aabb, BoundingBox},
     hittable::{HitRecord, Hittable},
     ray::Ray,
     vec3::Vec3,
@@ -28,5 +29,16 @@ where
                 hit_record.intersection.point += self.velocity * time;
                 hit_record
             })
+    }
+}
+
+impl<B> BoundingBox for Moving<B>
+where
+    B: BoundingBox,
+{
+    fn bounding_box(&self, exposure_time: f64) -> Aabb {
+        let box_t_min = self.inner.bounding_box(exposure_time);
+        let box_t_max = box_t_min.shifted(&self.velocity);
+        Aabb::surrounding(&box_t_min, &box_t_max)
     }
 }

@@ -1,5 +1,7 @@
 // https://raytracing.github.io/books/RayTracingInOneWeekend.html
 // Online ppm viewer: http://cs.rhodes.edu/welshc/COMP141_F16/ppmReader.html
+mod bounding_box;
+mod bvh;
 mod camera;
 mod hittable;
 mod material;

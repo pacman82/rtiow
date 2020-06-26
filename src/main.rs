@@ -9,12 +9,11 @@ mod moving;
 mod output;
 mod persistence;
 mod ray;
-mod sample;
 mod scene;
 mod shape;
 mod vec3;
 
-use crate::{output::save_image, persistence::SceneBuilder, sample::render_sample, vec3::Color};
+use crate::{output::save_image, persistence::SceneBuilder, vec3::Color};
 use indicatif::{ProgressBar, ProgressStyle};
 use rand::thread_rng;
 use rayon::prelude::*;
@@ -110,13 +109,11 @@ fn main() -> io::Result<()> {
             let mut rng = thread_rng();
             let sample = if running.load(Ordering::SeqCst) {
                 (
-                    render_sample(
+                    scene.render_sample(
                         &mut rng,
                         max_depth,
                         image_height,
                         image_width,
-                        &scene.camera,
-                        &scene.world,
                     ),
                     1,
                 )

@@ -1,6 +1,6 @@
 use crate::{
     bounding_box::{Aabb, BoundingBox},
-    hittable::{HitRecord, Hittable},
+    hittable::{Hit, Hittable},
     ray::Ray,
     vec3::Vec3,
 };
@@ -20,7 +20,7 @@ impl<H> Hittable for Moving<H>
 where
     H: Hittable,
 {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, time: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, time: f64) -> Option<Hit> {
         let mut ray_in_object_coordinates = *ray;
         ray_in_object_coordinates.origin -= self.velocity * time;
         self.inner

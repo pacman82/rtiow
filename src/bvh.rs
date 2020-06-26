@@ -99,7 +99,7 @@ impl Hittable for BvhNode {
         t_min: f64,
         t_max: f64,
         time: f64,
-    ) -> Option<crate::hittable::HitRecord> {
+    ) -> Option<crate::hittable::Hit> {
         if self.bounding_box.hit(ray, t_min, t_max) {
             let l = self.left.hit(ray, t_min, t_max, time);
             let r = self.right.hit(ray, t_min, t_max, time);

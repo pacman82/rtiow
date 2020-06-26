@@ -32,32 +32,61 @@ impl Scene {
                 let v = (j as f64 + rng.gen_range(0., 1.)) / (image_height - 1) as f64;
                 let ray = self.camera.get_ray(u, v, rng);
                 let time = self.camera.get_time(rng);
-                ray_color(&ray, time, &self.world, rng, max_depth)
+                ray_color(
+                    ray,
+                    time,
+                    &self.world,
+                    rng,
+                    max_depth,
+                )
             })
             .collect()
     }
 }
 
-fn ray_color(ray: &Ray, time: f64, world: &dyn Hittable, rng: &mut ThreadRng, depth: u32) -> Color {
-    if depth == 0 {
-        return Color::new(0., 0., 0.);
-    }
-    if let Some(rec) = world.hit(ray, 0.001, f64::INFINITY, time) {
-        if let Some(scattered) = rec.material.scatter(
-            rng,
-            &ray.direction,
-            &rec.intersection.normal,
-            rec.intersection.front_face,
-        ) {
-            let target = rec.intersection.point + scattered.direction;
-            let ray = Ray::from_to(rec.intersection.point, target);
-            &ray_color(&ray, time, world, rng, depth - 1) * &scattered.attenuation
+fn ray_color(
+    mut ray: Ray,
+    time: f64,
+    world: &dyn Hittable,
+    rng: &mut ThreadRng,
+    depth: u32,
+) -> Color {
+
+    let mut trace = |ray| {
+        let may_hit = world.hit(&ray, 0.001, f64::INFINITY, time);
+        if let Some(hit) = may_hit {
+            let may_scatter = hit.material.scatter(
+                rng,
+                &ray.direction,
+                &hit.intersection.normal,
+                hit.intersection.front_face,
+            );
+            if let Some(scattered) = may_scatter {
+                let target = hit.intersection.point + scattered.direction;
+                (scattered.attenuation, Some(Ray::from_to(hit.intersection.point, target)))
+            } else {
+                (Color::new(0., 0., 0.), None)
+            }
         } else {
-            Color::new(0., 0., 0.)
+            // No object in the scene has been hit. Let's use the ambient light.
+            (ambient(&ray.direction), None)
         }
-    } else {
-        ambient(&ray.direction)
+    };
+
+    let mut color = Color::new(1., 1., 1.);
+    for _ in 0..depth {
+        let (attenuation, scattered) = trace(ray);
+        color *= attenuation;
+        if let Some(next_ray) = scattered {
+            ray = next_ray
+        } else {
+            break;
+        }
     }
+    // In case of us hitting the max depth limit the original code proposed by the rtiow to return
+    // black, I find it however more appealing to return the attenuated color so far. For
+    // increasingly higher depth limits both variants become similar anyway.
+    color
 }
 
 fn ambient(direction: &Vec3) -> Color {

@@ -12,6 +12,7 @@ mod ray;
 mod scene;
 mod shape;
 mod vec3;
+mod random_scenes;
 
 use crate::{output::save_image, persistence::SceneBuilder, vec3::Color};
 use indicatif::{ProgressBar, ProgressStyle};
@@ -78,7 +79,7 @@ fn main() -> io::Result<()> {
     let scene = if let Some(path) = input {
         SceneBuilder::from_path(path)?
     } else {
-        let scene = SceneBuilder::mostly_random_spheres(&mut rng, aspect_ratio);
+        let scene = random_scenes::spheres(&mut rng, aspect_ratio);
         eprintln!("No input scene specified. Saving scene with random spheres to 'scene.json'.");
         scene.to_path("scene.json")?;
         scene

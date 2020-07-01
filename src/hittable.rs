@@ -2,6 +2,7 @@ use crate::{
     material::Material,
     ray::Ray,
     shape::{Intersection, Shape},
+    texture::Texture,
 };
 
 pub struct Hit<'m> {
@@ -47,14 +48,15 @@ where
     }
 }
 
-impl<S, M> Hittable for (S, M)
+impl<S, T> Hittable for (S, T)
 where
     S: Shape,
-    M: Material,
+    T: Texture,
 {
     fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, _time: f64) -> Option<Hit> {
-        self.0
-            .intersect(ray, t_min, t_max)
-            .map(|intersection| Hit::new(intersection, &self.1))
+        self.0.intersect(ray, t_min, t_max).map(|intersection| {
+            let material = self.1.material(0., 0., &intersection.point);
+            Hit::new(intersection, material)
+        })
     }
 }

@@ -1,14 +1,15 @@
 use crate::{
-    persistence::{HittableBuilder, MaterialBuilder, SceneBuilder, ShapeBuilder, CameraBuilder},
+    persistence::{HittableBuilder, SurfaceBuilder, SceneBuilder, ShapeBuilder, CameraBuilder},
     vec3::{Color, Point, Vec3},
 };
 use rand::Rng;
 
 pub fn spheres(rng: &mut impl Rng, aspect_ratio: f64) -> SceneBuilder {
     let mut world = Vec::new();
-    let ground_material = MaterialBuilder::Diffuse {
-        albedo: Color::new(0.5, 0.5, 0.5),
-    };
+    let ground_material = SurfaceBuilder::Checkered(
+        Box::new(SurfaceBuilder::Diffuse { albedo: Color::new(0.2, 0.3, 0.1)}),
+        Box::new(SurfaceBuilder::Diffuse { albedo: Color::new(0.9, 0.9, 0.9)})
+    );
 
     world.push(HittableBuilder {
         shape: ShapeBuilder::Sphere {
@@ -33,16 +34,16 @@ pub fn spheres(rng: &mut impl Rng, aspect_ratio: f64) -> SceneBuilder {
                 let (material, velocity) = if rng.gen_bool(0.8) {
                     let albedo = &Color::random(rng, 0., 1.) * &Color::random(rng, 0., 1.);
                     (
-                        MaterialBuilder::Diffuse { albedo },
+                        SurfaceBuilder::Diffuse { albedo },
                         Some(Vec3::new(0., rng.gen_range(0., 0.5), 0.)),
                     )
                 } else if rng.gen_bool(0.75) {
                     let albedo = Color::random(rng, 0.5, 1.);
                     let fuzziness = rng.gen_range(0., 0.5);
-                    (MaterialBuilder::Metal { albedo, fuzziness }, None)
+                    (SurfaceBuilder::Metal { albedo, fuzziness }, None)
                 } else {
                     (
-                        MaterialBuilder::Dielectric {
+                        SurfaceBuilder::Dielectric {
                             refractive_index: 1.5,
                         },
                         None,
@@ -66,7 +67,7 @@ pub fn spheres(rng: &mut impl Rng, aspect_ratio: f64) -> SceneBuilder {
             center: Point::new(0., 1., 0.),
             radius: 1.0,
         },
-        material: MaterialBuilder::Dielectric {
+        material: SurfaceBuilder::Dielectric {
             refractive_index: 1.5,
         },
         velocity: None,
@@ -77,7 +78,7 @@ pub fn spheres(rng: &mut impl Rng, aspect_ratio: f64) -> SceneBuilder {
             center: Point::new(-4., 1., 0.),
             radius: 1.0,
         },
-        material: MaterialBuilder::Diffuse {
+        material: SurfaceBuilder::Diffuse {
             albedo: Color::new(0.4, 0.2, 0.1),
         },
         velocity: None,
@@ -88,7 +89,7 @@ pub fn spheres(rng: &mut impl Rng, aspect_ratio: f64) -> SceneBuilder {
             center: Point::new(4., 1., 0.),
             radius: 1.0,
         },
-        material: MaterialBuilder::Metal {
+        material: SurfaceBuilder::Metal {
             albedo: Color::new(0.7, 0.6, 0.5),
             fuzziness: 0.,
         },

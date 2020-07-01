@@ -1,11 +1,11 @@
 use crate::{
     bvh::{into_bounding_volume_hierarchy, BoundedHittable},
     camera::Camera,
-    material::{Dielectric, Lambertian, Material, Metal},
+    material::{Dielectric, Lambertian, Metal},
     moving::Moving,
     scene::Scene,
     shape::Sphere,
-    vec3::{Color, Point, Vec3},
+    vec3::{Color, Point, Vec3}, texture::{Solid, Texture, Checkerd},
 };
 use serde::{Deserialize, Serialize};
 use std::{fs::read_to_string, io, path::Path};
@@ -72,20 +72,24 @@ impl CameraBuilder {
     }
 }
 
-#[derive(Serialize, Deserialize, Clone, Copy)]
-pub enum MaterialBuilder {
+#[derive(Serialize, Deserialize, Clone)]
+pub enum SurfaceBuilder {
     Diffuse { albedo: Color },
     Metal { albedo: Color, fuzziness: f64 },
     Dielectric { refractive_index: f64 },
+    Checkered (Box<SurfaceBuilder>, Box<SurfaceBuilder>)
 }
 
-impl MaterialBuilder {
-    fn build(self) -> Box<dyn Material + Send + Sync> {
+impl SurfaceBuilder {
+    fn build(&self) -> Box<dyn Texture + Send + Sync> {
         match self {
-            MaterialBuilder::Diffuse { albedo } => Box::new(Lambertian::new(albedo)),
-            MaterialBuilder::Metal { albedo, fuzziness } => Box::new(Metal::new(albedo, fuzziness)),
-            MaterialBuilder::Dielectric { refractive_index } => {
-                Box::new(Dielectric::new(refractive_index))
+            SurfaceBuilder::Diffuse { albedo } => Box::new(Solid(Lambertian::new(*albedo))),
+            SurfaceBuilder::Metal { albedo, fuzziness } => Box::new(Solid(Metal::new(*albedo, *fuzziness))),
+            SurfaceBuilder::Dielectric { refractive_index } => {
+                Box::new(Solid(Dielectric::new(*refractive_index)))
+            },
+            SurfaceBuilder::Checkered(t0, t1) => {
+                Box::new(Checkerd::new(t0.build(), t1.build()))
             }
         }
     }
@@ -107,7 +111,7 @@ impl ShapeBuilder {
 #[derive(Serialize, Deserialize)]
 pub struct HittableBuilder {
     pub shape: ShapeBuilder,
-    pub material: MaterialBuilder,
+    pub material: SurfaceBuilder,
     pub velocity: Option<Vec3>,
 }
 

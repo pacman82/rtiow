@@ -1,6 +1,6 @@
 use crate::{
     bounding_box::{Aabb, BoundingBox},
-    hittable::Hittable,
+    hittable::Hittable, renderable::Renderable,
 };
 use std::cmp::Ordering;
 
@@ -10,7 +10,7 @@ impl<T> BoundedHittable for T where T: Hittable + BoundingBox + Send + Sync {}
 pub fn into_bounding_volume_hierarchy(
     mut hittables: Vec<Box<dyn BoundedHittable>>,
     exposure_time: f64,
-) -> Box<dyn Hittable + Send + Sync> {
+) -> Box<dyn Renderable + Send + Sync> {
     match hittables.len() {
         0 => Box::new(hittables),
         1 => Box::new(hittables.drain(..).next().unwrap()),

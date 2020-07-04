@@ -1,18 +1,17 @@
 use crate::{
     camera::Camera,
-    hittable::Hittable,
     ray::Ray,
-    vec3::{Color, Vec3},
+    vec3::{Color, Vec3}, renderable::{HitCheck, Renderable},
 };
 use rand::{rngs::ThreadRng, Rng};
 
 pub struct Scene {
-    pub world: Box<dyn Hittable + Sync + Send>,
+    pub world: Box<dyn Renderable + Sync + Send>,
     pub camera: Camera,
 }
 
 impl Scene {
-    pub fn new(world: Box<dyn Hittable + Sync + Send>, camera: Camera) -> Self {
+    pub fn new(world: Box<dyn Renderable + Sync + Send>, camera: Camera) -> Self {
         Self { world, camera }
     }
 
@@ -32,13 +31,7 @@ impl Scene {
                 let v = (j as f64 + rng.gen_range(0., 1.)) / (image_height - 1) as f64;
                 let ray = self.camera.get_ray(u, v, rng);
                 let time = self.camera.get_time(rng);
-                ray_color(
-                    ray,
-                    time,
-                    &self.world,
-                    rng,
-                    max_depth,
-                )
+                ray_color(ray, time, self.world.as_ref(), rng, max_depth)
             })
             .collect()
     }
@@ -47,29 +40,19 @@ impl Scene {
 fn ray_color(
     mut ray: Ray,
     time: f64,
-    world: &dyn Hittable,
+    world: &dyn Renderable,
     rng: &mut ThreadRng,
     depth: u32,
 ) -> Color {
-
     let mut trace = |ray| {
-        let may_hit = world.hit(&ray, 0.001, f64::INFINITY, time);
-        if let Some(hit) = may_hit {
-            let may_scatter = hit.material.scatter(
-                rng,
-                &ray.direction,
-                &hit.intersection.normal,
-                hit.intersection.front_face,
-            );
-            if let Some(scattered) = may_scatter {
-                let target = hit.intersection.point + scattered.direction;
-                (scattered.attenuation, Some(Ray::from_to(hit.intersection.point, target)))
-            } else {
-                (Color::new(0., 0., 0.), None)
-            }
-        } else {
+        match world.hit_check(&ray, 0.001, f64::INFINITY, time, rng) {
             // No object in the scene has been hit. Let's use the ambient light.
-            (ambient(&ray.direction), None)
+            HitCheck::Miss => (ambient(&ray.direction), None),
+            HitCheck::Absorbed => (Color::new(0., 0., 0.), None),
+            HitCheck::Reflected {
+                attenuation,
+                scattered,
+            } => (attenuation, Some(scattered)),
         }
     };
 

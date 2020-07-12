@@ -34,13 +34,8 @@ where
         time: f64,
         rng: &mut ThreadRng,
     ) -> HitCheck {
-        if let Some(hit) = self.hit(ray, t_min, t_max, time) {
-            if let Some(scattered) = hit.material.scatter(
-                rng,
-                &ray.direction,
-                &hit.intersection.normal,
-                hit.intersection.front_face,
-            ) {
+        if let Some((_distance, hit)) = self.hit(ray, t_min, t_max, time) {
+            if let Some(scattered) = hit.texture.scatter(rng, &hit.intersection, &ray.direction) {
                 HitCheck::Reflected {
                     attenuation: scattered.attenuation,
                     scattered: Ray::new(hit.intersection.point, scattered.direction),

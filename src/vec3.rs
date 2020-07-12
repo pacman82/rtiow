@@ -9,6 +9,10 @@ pub type Point = Vec3;
 pub struct Vec3([f64; 3]);
 
 impl Vec3 {
+
+    pub const ZERO: Vec3 = Vec3::new(0., 0., 0.);
+    pub const ONE: Vec3 = Vec3::new(1., 1., 1.);
+
     pub const fn new(x: f64, y: f64, z: f64) -> Self {
         Self([x, y, z])
     }
@@ -141,6 +145,14 @@ impl MulAssign for Vec3 {
     fn mul_assign(&mut self, rhs: Vec3) {
         for i in 0..3 {
             self[i] *= rhs[i]
+        }
+    }
+}
+
+impl MulAssign<f64> for Vec3 {
+    fn mul_assign(&mut self, rhs: f64) {
+        for i in 0..3 {
+            self[i] *= rhs
         }
     }
 }

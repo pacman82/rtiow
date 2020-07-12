@@ -6,23 +6,26 @@ use crate::{
 
 // A physical volume (without any material associated yet).
 pub trait Shape {
-    fn intersect(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<Intersection>;
+    fn intersect(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<(f64, Puncture)>;
 }
 
-pub struct Intersection {
-    pub t: f64,
+/// Describes the point there the Ray punctures the shape. The mathematical ray that is. The
+/// physical light is much more likely to be reflected of course.
+pub struct Puncture {
+    /// The point in (world) space the the ray punctures the shape. 
     pub point: Point,
+    /// `true` if the outward normal points against the incoming ray. I.e. The shape is punctured
+    /// from the outside.
     pub front_face: bool,
     /// Always pointing against the intersecting ray.
     pub normal: Vec3,
+    pub texture_coordiantes: (f64, f64),
 }
 
-impl Intersection {
-    pub fn from_outward_normal(t: f64, ray: &Ray, outward_normal: Vec3) -> Self {
-        let point = ray.at(t);
-        let front_face = dot(outward_normal, ray.direction) < 0.;
+impl Puncture {
+    pub fn from_outward_normal(point: Point, outward_normal: Vec3, incoming: &Vec3) -> Self {
+        let front_face = dot(outward_normal, *incoming) < 0.;
         Self {
-            t,
             point,
             front_face,
             normal: if front_face {
@@ -30,6 +33,7 @@ impl Intersection {
             } else {
                 -outward_normal
             },
+            texture_coordiantes: (0.,0.)
         }
     }
 }
@@ -46,7 +50,7 @@ impl Sphere {
 }
 
 impl Shape for Sphere {
-    fn intersect(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<Intersection> {
+    fn intersect(&self, ray: &Ray, t_min: f64, t_max: f64) -> Option<(f64, Puncture)> {
         // Transform coordinats so sphere is in the center.
         let origin = ray.origin - self.center;
         // r^2 == (t * D + O) * (t * D + O)
@@ -83,7 +87,7 @@ impl Shape for Sphere {
             let point = ray.at(t);
             let outward_normal = (point - self.center) / self.radius;
 
-            Intersection::from_outward_normal(t, ray, outward_normal)
+            (t, Puncture::from_outward_normal(point, outward_normal, &ray.direction))
         })
     }
 }

@@ -20,14 +20,14 @@ impl<H> Hittable for Moving<H>
 where
     H: Hittable,
 {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, time: f64) -> Option<Hit> {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, time: f64) -> Option<(f64, Hit)> {
         let mut ray_in_object_coordinates = *ray;
         ray_in_object_coordinates.origin -= self.velocity * time;
         self.inner
             .hit(&ray_in_object_coordinates, t_min, t_max, time)
-            .map(|mut hit_record| {
+            .map(|(distance, mut hit_record)| {
                 hit_record.intersection.point += self.velocity * time;
-                hit_record
+                (distance, hit_record)
             })
     }
 }

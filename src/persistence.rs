@@ -6,6 +6,7 @@ use crate::{
     scene::Scene,
     shape::Sphere,
     vec3::{Color, Point, Vec3}, texture::{Solid, Texture, Checkerd},
+    perlin::Perlin,
 };
 use serde::{Deserialize, Serialize};
 use std::{fs::read_to_string, io, path::Path};
@@ -77,7 +78,8 @@ pub enum SurfaceBuilder {
     Diffuse { albedo: Color },
     Metal { albedo: Color, fuzziness: f64 },
     Dielectric { refractive_index: f64 },
-    Checkered (Box<SurfaceBuilder>, Box<SurfaceBuilder>)
+    Checkered (Box<SurfaceBuilder>, Box<SurfaceBuilder>),
+    Perlin { seed: u64, scale: f64 },
 }
 
 impl SurfaceBuilder {
@@ -91,6 +93,7 @@ impl SurfaceBuilder {
             SurfaceBuilder::Checkered(t0, t1) => {
                 Box::new(Checkerd::new(t0.build(), t1.build()))
             }
+            SurfaceBuilder::Perlin { seed, scale } => Box::new(Perlin::new( *seed, *scale )),
         }
     }
 }

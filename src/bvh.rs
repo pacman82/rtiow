@@ -1,6 +1,6 @@
 use crate::{
     bounding_box::{Aabb, BoundingBox},
-    hittable::Hittable, renderable::Renderable,
+    hittable::{Hit, Hittable}, renderable::Renderable,
 };
 use std::cmp::Ordering;
 
@@ -99,7 +99,7 @@ impl Hittable for BvhNode {
         t_min: f64,
         t_max: f64,
         time: f64,
-    ) -> Option<crate::hittable::Hit> {
+    ) -> Option<(f64, Hit)> {
         if self.bounding_box.hit(ray, t_min, t_max) {
             let l = self.left.hit(ray, t_min, t_max, time);
             let r = self.right.hit(ray, t_min, t_max, time);
@@ -107,7 +107,7 @@ impl Hittable for BvhNode {
                 (None, None) => None,
                 (Some(hr), None) | (None, Some(hr)) => Some(hr),
                 (Some(l), Some(r)) => {
-                    if l.intersection.t < r.intersection.t {
+                    if l.0 < r.0 {
                         Some(l)
                     } else {
                         Some(r)

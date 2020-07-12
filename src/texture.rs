@@ -1,15 +1,30 @@
-use crate::{material::Material, vec3::Point};
+use crate::{
+    material::{Material, ScatterResult},
+    shape::Puncture,
+    vec3::Vec3,
+};
+use rand::rngs::ThreadRng;
 
 pub trait Texture {
-    fn material(&self, u: f64, v: f64, point: &Point) -> &dyn Material;
+    fn scatter(
+        &self,
+        rng: &mut ThreadRng,
+        punctured: &Puncture,
+        incoming: &Vec3,
+    ) -> Option<ScatterResult>;
 }
 
 impl<T> Texture for Box<T>
 where
     T: Texture + ?Sized,
 {
-    fn material(&self, u: f64, v: f64, point: &Point) -> &dyn Material {
-        self.as_ref().material(u, v, point)
+    fn scatter(
+        &self,
+        rng: &mut ThreadRng,
+        punctured: &Puncture,
+        incoming: &Vec3,
+    ) -> Option<ScatterResult> {
+        self.as_ref().scatter(rng, punctured, incoming)
     }
 }
 
@@ -20,8 +35,14 @@ impl<M> Texture for Solid<M>
 where
     M: Material,
 {
-    fn material(&self, _u: f64, _v: f64, _point: &Point) -> &dyn Material {
-        &self.0
+    fn scatter(
+        &self,
+        rng: &mut ThreadRng,
+        puncture: &Puncture,
+        incoming: &Vec3,
+    ) -> Option<ScatterResult> {
+        self.0
+            .scatter(rng, incoming, &puncture.normal, puncture.front_face)
     }
 }
 
@@ -41,15 +62,21 @@ where
     E: Texture,
     O: Texture,
 {
-    fn material(&self, u: f64, v: f64, point: &Point) -> &dyn Material {
+    fn scatter(
+        &self,
+        rng: &mut ThreadRng,
+        puncture: &Puncture,
+        incoming: &Vec3,
+    ) -> Option<ScatterResult> {
+        let point = &puncture.point;
         let frequency = 10.;
         let sines = (frequency * point.x()).sin()
             * (frequency * point.y()).sin()
             * (frequency * point.z()).sin();
         if sines < 0. {
-            self.odd.material(u, v, point)
+            self.odd.scatter(rng, puncture, incoming)
         } else {
-            self.even.material(u, v, point)
+            self.even.scatter(rng, puncture, incoming)
         }
     }
 }

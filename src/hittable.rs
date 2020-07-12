@@ -1,35 +1,34 @@
 use crate::{
-    material::Material,
     ray::Ray,
-    shape::{Intersection, Shape},
+    shape::{Puncture, Shape},
     texture::Texture,
 };
 
 pub struct Hit<'m> {
-    pub intersection: Intersection,
-    pub material: &'m dyn Material,
+    pub intersection: Puncture,
+    pub texture: &'m dyn Texture,
 }
 
 impl<'m> Hit<'m> {
-    pub fn new(intersection: Intersection, material: &'m dyn Material) -> Self {
+    pub fn new(intersection: Puncture, texture: &'m dyn Texture) -> Self {
         Self {
             intersection,
-            material,
+            texture,
         }
     }
 }
 
 pub trait Hittable {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, time: f64) -> Option<Hit>;
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, time: f64) -> Option<(f64, Hit)>;
 }
 
 impl<T> Hittable for Vec<T>
 where
     T: Hittable,
 {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, time: f64) -> Option<Hit> {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, time: f64) -> Option<(f64, Hit)> {
         self.iter().fold(None, |rec, hittable| {
-            let closest_so_far = rec.as_ref().map(|r| r.intersection.t).unwrap_or(t_max);
+            let closest_so_far = rec.as_ref().map(|(distance, _hit)| *distance).unwrap_or(t_max);
             if let Some(rec) = hittable.hit(ray, t_min, closest_so_far, time) {
                 Some(rec)
             } else {
@@ -43,7 +42,7 @@ impl<T> Hittable for Box<T>
 where
     T: Hittable + ?Sized,
 {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, time: f64) -> Option<Hit> {
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, time: f64) -> Option<(f64, Hit)> {
         self.as_ref().hit(ray, t_min, t_max, time)
     }
 }
@@ -53,10 +52,10 @@ where
     S: Shape,
     T: Texture,
 {
-    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, _time: f64) -> Option<Hit> {
-        self.0.intersect(ray, t_min, t_max).map(|intersection| {
-            let material = self.1.material(0., 0., &intersection.point);
-            Hit::new(intersection, material)
+    fn hit(&self, ray: &Ray, t_min: f64, t_max: f64, _time: f64) -> Option<(f64, Hit)> {
+        self.0.intersect(ray, t_min, t_max).map(|(distance, intersection)| {
+            let texture = &self.1;
+            (distance, Hit::new(intersection, texture))
         })
     }
 }

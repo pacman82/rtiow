@@ -15,6 +15,7 @@ mod vec3;
 mod random_scenes;
 mod texture;
 mod renderable;
+mod perlin;
 
 use crate::{output::save_image, persistence::SceneBuilder, vec3::Color};
 use indicatif::{ProgressBar, ProgressStyle};

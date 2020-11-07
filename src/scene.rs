@@ -1,7 +1,8 @@
 use crate::{
     camera::Camera,
     ray::Ray,
-    vec3::{Color, Vec3}, renderable::{HitCheck, Renderable},
+    renderable::{HitCheck, Renderable},
+    vec3::{Color, Vec3},
 };
 use rand::{rngs::ThreadRng, Rng};
 

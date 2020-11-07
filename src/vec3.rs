@@ -1,6 +1,6 @@
 use rand::Rng;
 use serde::{Deserialize, Serialize};
-use std::ops::{Add, AddAssign, Deref, DerefMut, Div, Mul, Neg, Sub, SubAssign, MulAssign};
+use std::ops::{Add, AddAssign, Deref, DerefMut, Div, Mul, MulAssign, Neg, Sub, SubAssign};
 
 pub type Color = Vec3;
 pub type Point = Vec3;
@@ -9,7 +9,6 @@ pub type Point = Vec3;
 pub struct Vec3([f64; 3]);
 
 impl Vec3 {
-
     pub const ZERO: Vec3 = Vec3::new(0., 0., 0.);
     pub const ONE: Vec3 = Vec3::new(1., 1., 1.);
 

@@ -12,7 +12,7 @@ pub trait Shape {
 /// Describes the point there the Ray punctures the shape. The mathematical ray that is. The
 /// physical light is much more likely to be reflected of course.
 pub struct Puncture {
-    /// The point in (world) space the the ray punctures the shape. 
+    /// The point in (world) space the the ray punctures the shape.
     pub point: Point,
     /// `true` if the outward normal points against the incoming ray. I.e. The shape is punctured
     /// from the outside.
@@ -33,7 +33,7 @@ impl Puncture {
             } else {
                 -outward_normal
             },
-            texture_coordiantes: (0.,0.)
+            texture_coordiantes: (0., 0.),
         }
     }
 }
@@ -87,7 +87,10 @@ impl Shape for Sphere {
             let point = ray.at(t);
             let outward_normal = (point - self.center) / self.radius;
 
-            (t, Puncture::from_outward_normal(point, outward_normal, &ray.direction))
+            (
+                t,
+                Puncture::from_outward_normal(point, outward_normal, &ray.direction),
+            )
         })
     }
 }

@@ -7,15 +7,15 @@ mod hittable;
 mod material;
 mod moving;
 mod output;
+mod perlin;
 mod persistence;
+mod random_scenes;
 mod ray;
+mod renderable;
 mod scene;
 mod shape;
-mod vec3;
-mod random_scenes;
 mod texture;
-mod renderable;
-mod perlin;
+mod vec3;
 
 use crate::{output::save_image, persistence::SceneBuilder, vec3::Color};
 use indicatif::{ProgressBar, ProgressStyle};
@@ -48,7 +48,7 @@ struct Cli {
     image_width: u32,
     /// Vertical width of the picture in pixels.
     #[structopt(long, default_value = "216")]
-    image_width: u32,
+    image_height: u32,
     /// Path to a JSON file describing the Scene to be rendered. If no value is given a picture with
     /// mostly random spheres is used.
     #[structopt(long, short = "i")]
@@ -116,12 +116,7 @@ fn main() -> io::Result<()> {
             let mut rng = thread_rng();
             let sample = if running.load(Ordering::SeqCst) {
                 (
-                    scene.render_sample(
-                        &mut rng,
-                        max_depth,
-                        image_height,
-                        image_width,
-                    ),
+                    scene.render_sample(&mut rng, max_depth, image_height, image_width),
                     1,
                 )
             } else {

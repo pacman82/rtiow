@@ -3,10 +3,11 @@ use crate::{
     camera::Camera,
     material::{Dielectric, Lambertian, Metal},
     moving::Moving,
+    perlin::Perlin,
     scene::Scene,
     shape::Sphere,
-    vec3::{Color, Point, Vec3}, texture::{Solid, Texture, Checkerd},
-    perlin::Perlin,
+    texture::{Checkerd, Solid, Texture},
+    vec3::{Color, Point, Vec3},
 };
 use serde::{Deserialize, Serialize};
 use std::{fs::read_to_string, io, path::Path};
@@ -78,7 +79,7 @@ pub enum SurfaceBuilder {
     Diffuse { albedo: Color },
     Metal { albedo: Color, fuzziness: f64 },
     Dielectric { refractive_index: f64 },
-    Checkered (Box<SurfaceBuilder>, Box<SurfaceBuilder>),
+    Checkered(Box<SurfaceBuilder>, Box<SurfaceBuilder>),
     Perlin { seed: u64, scale: f64 },
 }
 
@@ -86,14 +87,14 @@ impl SurfaceBuilder {
     fn build(&self) -> Box<dyn Texture + Send + Sync> {
         match self {
             SurfaceBuilder::Diffuse { albedo } => Box::new(Solid(Lambertian::new(*albedo))),
-            SurfaceBuilder::Metal { albedo, fuzziness } => Box::new(Solid(Metal::new(*albedo, *fuzziness))),
+            SurfaceBuilder::Metal { albedo, fuzziness } => {
+                Box::new(Solid(Metal::new(*albedo, *fuzziness)))
+            }
             SurfaceBuilder::Dielectric { refractive_index } => {
                 Box::new(Solid(Dielectric::new(*refractive_index)))
-            },
-            SurfaceBuilder::Checkered(t0, t1) => {
-                Box::new(Checkerd::new(t0.build(), t1.build()))
             }
-            SurfaceBuilder::Perlin { seed, scale } => Box::new(Perlin::new( *seed, *scale )),
+            SurfaceBuilder::Checkered(t0, t1) => Box::new(Checkerd::new(t0.build(), t1.build())),
+            SurfaceBuilder::Perlin { seed, scale } => Box::new(Perlin::new(*seed, *scale)),
         }
     }
 }

@@ -1,5 +1,5 @@
 use crate::{
-    persistence::{HittableBuilder, SurfaceBuilder, SceneBuilder, ShapeBuilder, CameraBuilder},
+    persistence::{CameraBuilder, HittableBuilder, SceneBuilder, ShapeBuilder, SurfaceBuilder},
     vec3::{Color, Point, Vec3},
 };
 use rand::Rng;
@@ -7,8 +7,12 @@ use rand::Rng;
 pub fn spheres(rng: &mut impl Rng, aspect_ratio: f64) -> SceneBuilder {
     let mut world = Vec::new();
     let ground_material = SurfaceBuilder::Checkered(
-        Box::new(SurfaceBuilder::Diffuse { albedo: Color::new(0.2, 0.3, 0.1)}),
-        Box::new(SurfaceBuilder::Diffuse { albedo: Color::new(0.9, 0.9, 0.9)})
+        Box::new(SurfaceBuilder::Diffuse {
+            albedo: Color::new(0.2, 0.3, 0.1),
+        }),
+        Box::new(SurfaceBuilder::Diffuse {
+            albedo: Color::new(0.9, 0.9, 0.9),
+        }),
     );
 
     world.push(HittableBuilder {

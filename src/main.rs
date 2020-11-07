@@ -42,9 +42,12 @@ struct Cli {
     /// Maximum number of "bounces" calculated for each Ray.
     #[structopt(long, default_value = "50")]
     max_depth: u32,
-    /// Horizontal width of the Picture. Vertical height is calculated from this in combinatino with
+    /// Horizontal width of the picture in pixels.
     /// Aspect ratio.
     #[structopt(long, default_value = "384")]
+    image_width: u32,
+    /// Vertical width of the picture in pixels.
+    #[structopt(long, default_value = "216")]
     image_width: u32,
     /// Path to a JSON file describing the Scene to be rendered. If no value is given a picture with
     /// mostly random spheres is used.
@@ -69,13 +72,13 @@ fn main() -> io::Result<()> {
     let Cli {
         samples_per_pixel,
         max_depth,
+        image_height,
         image_width,
         input,
         output,
     } = Cli::from_args();
 
-    let aspect_ratio = 16. / 9.;
-    let image_height = (image_width as f64 / aspect_ratio) as u32;
+    let aspect_ratio = image_width as f64 / image_height as f64;
 
     let mut rng = thread_rng();
 
